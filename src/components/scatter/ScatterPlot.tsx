@@ -201,8 +201,8 @@ export function ScatterPlot({
       ctx.fill();
     });
     
-    // Draw cluster labels
-    if (showLabels && !selectedGene) {
+    // Draw cluster labels - show even when gene expression is displayed
+    if (showLabels) {
       ctx.font = "bold 12px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -211,10 +211,11 @@ export function ScatterPlot({
         const id = parseInt(clusterId);
         const pos = dataToCanvas(center.x, center.y);
         
-        // Draw label background
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-        ctx.lineWidth = 1;
+        // Draw label background with higher opacity when expression is shown
+        const bgOpacity = selectedGene ? 0.95 : 0.9;
+        ctx.fillStyle = `rgba(255, 255, 255, ${bgOpacity})`;
+        ctx.strokeStyle = selectedGene ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.3)";
+        ctx.lineWidth = selectedGene ? 1.5 : 1;
         
         const labelText = id.toString();
         const metrics = ctx.measureText(labelText);

@@ -1,6 +1,7 @@
 import React from "react";
-import { Database, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { DatasetMetadata } from "@/types/singleCell";
+import accelBioLogo from "@/assets/AccelBio_logo.png";
 
 interface HeaderProps {
   metadata: DatasetMetadata;
@@ -9,12 +10,15 @@ interface HeaderProps {
 export function Header({ metadata }: HeaderProps) {
   return (
     <header className="border-b border-border bg-card">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Database className="h-5 w-5 text-primary-foreground" />
-            </div>
+          <div className="flex items-center gap-4">
+            <img 
+              src={accelBioLogo} 
+              alt="AccelBio Logo" 
+              className="h-12 w-auto"
+            />
+            <div className="h-8 w-px bg-border" />
             <div>
               <h1 className="text-lg font-semibold text-foreground">
                 {metadata.name}
