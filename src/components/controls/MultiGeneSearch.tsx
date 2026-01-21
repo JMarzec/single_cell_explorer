@@ -27,17 +27,19 @@ export function MultiGeneSearch({
     [genes]
   );
 
+  const safeSelectedGenes = selectedGenes ?? [];
+
   const results = useMemo(() => {
-    const filteredGenes = genes.filter((g) => !selectedGenes.includes(g));
+    const filteredGenes = genes.filter((g) => !safeSelectedGenes.includes(g));
     if (!query.trim()) {
       return filteredGenes.slice(0, 10);
     }
     return fuse
       .search(query)
-      .filter((r) => !selectedGenes.includes(r.item))
+      .filter((r) => !safeSelectedGenes.includes(r.item))
       .slice(0, 10)
       .map((r) => r.item);
-  }, [query, genes, fuse, selectedGenes]);
+  }, [query, genes, fuse, safeSelectedGenes]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -54,14 +56,14 @@ export function MultiGeneSearch({
   }, []);
 
   const handleAdd = (gene: string) => {
-    if (selectedGenes.length < maxGenes && !selectedGenes.includes(gene)) {
-      onGenesSelect([...selectedGenes, gene]);
+    if (safeSelectedGenes.length < maxGenes && !safeSelectedGenes.includes(gene)) {
+      onGenesSelect([...safeSelectedGenes, gene]);
       setQuery("");
     }
   };
 
   const handleRemove = (gene: string) => {
-    onGenesSelect(selectedGenes.filter((g) => g !== gene));
+    onGenesSelect(safeSelectedGenes.filter((g) => g !== gene));
   };
 
   const handleClearAll = () => {
@@ -77,8 +79,8 @@ export function MultiGeneSearch({
         <Input
           ref={inputRef}
           type="text"
-          placeholder={
-            selectedGenes.length >= maxGenes
+        placeholder={
+            safeSelectedGenes.length >= maxGenes
               ? `Max ${maxGenes} genes`
               : "Add genes..."
           }
@@ -89,9 +91,9 @@ export function MultiGeneSearch({
           }}
           onFocus={() => setIsOpen(true)}
           className="pl-10 pr-10 bg-card"
-          disabled={selectedGenes.length >= maxGenes}
+          disabled={safeSelectedGenes.length >= maxGenes}
         />
-        {selectedGenes.length > 0 && (
+        {safeSelectedGenes.length > 0 && (
           <button
             onClick={handleClearAll}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
@@ -102,9 +104,9 @@ export function MultiGeneSearch({
       </div>
 
       {/* Selected genes */}
-      {selectedGenes.length > 0 && (
+      {safeSelectedGenes.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {selectedGenes.map((gene) => (
+          {safeSelectedGenes.map((gene) => (
             <Badge
               key={gene}
               variant="default"
@@ -119,7 +121,7 @@ export function MultiGeneSearch({
       )}
 
       {/* Dropdown */}
-      {isOpen && results.length > 0 && selectedGenes.length < maxGenes && (
+      {isOpen && results.length > 0 && safeSelectedGenes.length < maxGenes && (
         <div className="absolute z-50 left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-thin">
           {results.map((gene) => (
             <button
@@ -136,7 +138,7 @@ export function MultiGeneSearch({
 
       {/* Gene count */}
       <p className="text-xs text-muted-foreground">
-        {selectedGenes.length} of {maxGenes} genes selected
+        {safeSelectedGenes.length} of {maxGenes} genes selected
       </p>
     </div>
   );
