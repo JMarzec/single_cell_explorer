@@ -3,15 +3,19 @@ import { Header } from "@/components/layout/Header";
 import { ScatterPlot } from "@/components/scatter/ScatterPlot";
 import { ControlPanel } from "@/components/controls/ControlPanel";
 import { DifferentialExpressionTable } from "@/components/table/DifferentialExpressionTable";
+import { ViolinPlot } from "@/components/plots/ViolinPlot";
+import { FeaturePlot } from "@/components/plots/FeaturePlot";
+import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset, getGeneExpression } from "@/data/demoData";
 import { VisualizationSettings, SingleCellDataset } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PanelLeft, PanelLeftClose } from "lucide-react";
 
 // Generate two demo datasets for side-by-side comparison
-const demoDataset1 = generateDemoDataset(15000);
-const demoDataset2: SingleCellDataset = {
+const defaultDataset1 = generateDemoDataset(15000);
+const defaultDataset2: SingleCellDataset = {
   ...generateDemoDataset(12000),
   metadata: {
     ...generateDemoDataset(12000).metadata,
@@ -22,6 +26,8 @@ const demoDataset2: SingleCellDataset = {
 
 const Index = () => {
   const [showSideBySide, setShowSideBySide] = useState(false);
+  const [dataset1, setDataset1] = useState<SingleCellDataset>(defaultDataset1);
+  const [dataset2, setDataset2] = useState<SingleCellDataset>(defaultDataset2);
   
   // Settings for left/single panel
   const [settings1, setSettings1] = useState<VisualizationSettings>({
@@ -59,13 +65,23 @@ const Index = () => {
 
   const expressionData1 = useMemo(() => {
     if (!settings1.selectedGene) return undefined;
-    return getGeneExpression(demoDataset1.cells, settings1.selectedGene);
-  }, [settings1.selectedGene]);
+    return getGeneExpression(dataset1.cells, settings1.selectedGene);
+  }, [settings1.selectedGene, dataset1.cells]);
 
   const expressionData2 = useMemo(() => {
     if (!settings2.selectedGene) return undefined;
-    return getGeneExpression(demoDataset2.cells, settings2.selectedGene);
-  }, [settings2.selectedGene]);
+    return getGeneExpression(dataset2.cells, settings2.selectedGene);
+  }, [settings2.selectedGene, dataset2.cells]);
+
+  const handleDatasetLoad1 = useCallback((newDataset: SingleCellDataset) => {
+    setDataset1(newDataset);
+    setSettings1(prev => ({ ...prev, selectedGene: null }));
+  }, []);
+
+  const handleDatasetLoad2 = useCallback((newDataset: SingleCellDataset) => {
+    setDataset2(newDataset);
+    setSettings2(prev => ({ ...prev, selectedGene: null }));
+  }, []);
 
   const handleGeneClick1 = useCallback((gene: string) => {
     setSettings1((prev) => ({ ...prev, selectedGene: gene }));
@@ -76,35 +92,50 @@ const Index = () => {
   }, []);
 
   const clusterNames1 = useMemo(
-    () => demoDataset1.clusters.map((c) => c.name),
-    []
+    () => dataset1.clusters.map((c) => c.name),
+    [dataset1.clusters]
   );
 
   const clusterNames2 = useMemo(
-    () => demoDataset2.clusters.map((c) => c.name),
-    []
+    () => dataset2.clusters.map((c) => c.name),
+    [dataset2.clusters]
   );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header metadata={demoDataset1.metadata} />
+      <Header metadata={dataset1.metadata} />
 
       <main className="flex-1 container mx-auto px-4 py-6">
-        {/* Side-by-side toggle */}
-        <div className="mb-4 flex items-center gap-3 p-3 bg-card border border-border rounded-lg w-fit">
-          {showSideBySide ? (
-            <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <PanelLeft className="h-4 w-4 text-muted-foreground" />
-          )}
-          <Label htmlFor="side-by-side" className="text-sm font-medium cursor-pointer">
-            Side-by-side comparison
-          </Label>
-          <Switch
-            id="side-by-side"
-            checked={showSideBySide}
-            onCheckedChange={setShowSideBySide}
-          />
+        {/* Controls row */}
+        <div className="mb-4 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg">
+            {showSideBySide ? (
+              <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <PanelLeft className="h-4 w-4 text-muted-foreground" />
+            )}
+            <Label htmlFor="side-by-side" className="text-sm font-medium cursor-pointer">
+              Side-by-side comparison
+            </Label>
+            <Switch
+              id="side-by-side"
+              checked={showSideBySide}
+              onCheckedChange={setShowSideBySide}
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <DatasetUploader 
+              onDatasetLoad={handleDatasetLoad1} 
+              buttonVariant="outline"
+            />
+            {showSideBySide && (
+              <DatasetUploader 
+                onDatasetLoad={handleDatasetLoad2} 
+                buttonVariant="ghost"
+              />
+            )}
+          </div>
         </div>
 
         {showSideBySide ? (
@@ -114,14 +145,14 @@ const Index = () => {
               {/* Left Dataset */}
               <div className="space-y-4">
                 <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                  <h2 className="font-semibold text-foreground">{demoDataset1.metadata.name}</h2>
+                  <h2 className="font-semibold text-foreground">{dataset1.metadata.name}</h2>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {demoDataset1.metadata.cellCount.toLocaleString()} cells • {demoDataset1.metadata.clusterCount} clusters
+                    {dataset1.metadata.cellCount.toLocaleString()} cells • {dataset1.metadata.clusterCount} clusters
                   </p>
                 </div>
                 <div className="h-[400px]">
                   <ScatterPlot
-                    cells={demoDataset1.cells}
+                    cells={dataset1.cells}
                     expressionData={expressionData1}
                     selectedGene={settings1.selectedGene}
                     pointSize={settings1.pointSize}
@@ -132,24 +163,31 @@ const Index = () => {
                   />
                 </div>
                 <ControlPanel
-                  genes={demoDataset1.genes}
-                  clusters={demoDataset1.clusters}
+                  genes={dataset1.genes}
+                  clusters={dataset1.clusters}
                   settings={settings1}
                   onSettingsChange={handleSettingsChange1}
                 />
+                {settings1.selectedGene && (
+                  <ViolinPlot 
+                    cells={dataset1.cells} 
+                    gene={settings1.selectedGene} 
+                    clusters={dataset1.clusters}
+                  />
+                )}
               </div>
 
               {/* Right Dataset */}
               <div className="space-y-4">
                 <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg">
-                  <h2 className="font-semibold text-foreground">{demoDataset2.metadata.name}</h2>
+                  <h2 className="font-semibold text-foreground">{dataset2.metadata.name}</h2>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {demoDataset2.metadata.cellCount.toLocaleString()} cells • {demoDataset2.metadata.clusterCount} clusters
+                    {dataset2.metadata.cellCount.toLocaleString()} cells • {dataset2.metadata.clusterCount} clusters
                   </p>
                 </div>
                 <div className="h-[400px]">
                   <ScatterPlot
-                    cells={demoDataset2.cells}
+                    cells={dataset2.cells}
                     expressionData={expressionData2}
                     selectedGene={settings2.selectedGene}
                     pointSize={settings2.pointSize}
@@ -160,22 +198,29 @@ const Index = () => {
                   />
                 </div>
                 <ControlPanel
-                  genes={demoDataset2.genes}
-                  clusters={demoDataset2.clusters}
+                  genes={dataset2.genes}
+                  clusters={dataset2.clusters}
                   settings={settings2}
                   onSettingsChange={handleSettingsChange2}
                 />
+                {settings2.selectedGene && (
+                  <ViolinPlot 
+                    cells={dataset2.cells} 
+                    gene={settings2.selectedGene} 
+                    clusters={dataset2.clusters}
+                  />
+                )}
               </div>
             </div>
 
             {/* Differential Expression Tables */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <DifferentialExpressionTable
-                data={demoDataset1.differentialExpression}
+                data={dataset1.differentialExpression}
                 onGeneClick={handleGeneClick1}
               />
               <DifferentialExpressionTable
-                data={demoDataset2.differentialExpression}
+                data={dataset2.differentialExpression}
                 onGeneClick={handleGeneClick2}
               />
             </div>
@@ -186,8 +231,8 @@ const Index = () => {
             {/* Control Panel - Left Sidebar */}
             <div className="lg:col-span-1 order-2 lg:order-1">
               <ControlPanel
-                genes={demoDataset1.genes}
-                clusters={demoDataset1.clusters}
+                genes={dataset1.genes}
+                clusters={dataset1.clusters}
                 settings={settings1}
                 onSettingsChange={handleSettingsChange1}
               />
@@ -198,7 +243,7 @@ const Index = () => {
               {/* Scatter Plot */}
               <div className="h-[500px]">
                 <ScatterPlot
-                  cells={demoDataset1.cells}
+                  cells={dataset1.cells}
                   expressionData={expressionData1}
                   selectedGene={settings1.selectedGene}
                   pointSize={settings1.pointSize}
@@ -209,9 +254,33 @@ const Index = () => {
                 />
               </div>
 
+              {/* Violin and Feature Plots */}
+              {settings1.selectedGene && (
+                <Tabs defaultValue="violin" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="violin">Violin Plot</TabsTrigger>
+                    <TabsTrigger value="feature">Feature Plot</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="violin">
+                    <ViolinPlot 
+                      cells={dataset1.cells} 
+                      gene={settings1.selectedGene} 
+                      clusters={dataset1.clusters}
+                    />
+                  </TabsContent>
+                  <TabsContent value="feature">
+                    <FeaturePlot 
+                      cells={dataset1.cells} 
+                      gene={settings1.selectedGene} 
+                      clusters={dataset1.clusters}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
+
               {/* Differential Expression Table */}
               <DifferentialExpressionTable
-                data={demoDataset1.differentialExpression}
+                data={dataset1.differentialExpression}
                 onGeneClick={handleGeneClick1}
               />
             </div>
@@ -222,22 +291,22 @@ const Index = () => {
         <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
           <p className="text-sm text-muted-foreground">
             <strong className="text-foreground">About this dataset:</strong>{" "}
-            {demoDataset1.metadata.description}
+            {dataset1.metadata.description}
           </p>
           <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-            {demoDataset1.metadata.organism && (
+            {dataset1.metadata.organism && (
               <span>
-                <strong>Organism:</strong> {demoDataset1.metadata.organism}
+                <strong>Organism:</strong> {dataset1.metadata.organism}
               </span>
             )}
-            {demoDataset1.metadata.tissue && (
+            {dataset1.metadata.tissue && (
               <span>
-                <strong>Tissue:</strong> {demoDataset1.metadata.tissue}
+                <strong>Tissue:</strong> {dataset1.metadata.tissue}
               </span>
             )}
-            {demoDataset1.metadata.source && (
+            {dataset1.metadata.source && (
               <span>
-                <strong>Source:</strong> {demoDataset1.metadata.source}
+                <strong>Source:</strong> {dataset1.metadata.source}
               </span>
             )}
           </div>
