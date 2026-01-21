@@ -188,7 +188,9 @@ export function ScatterPlot({
       
       if (selectedGene && expressionData) {
         const expr = expressionData.get(cell.id) ?? 0;
-        color = expressionToColor(expr, expressionBounds.min, expressionBounds.max);
+        const baseColor = expressionToColor(expr, expressionBounds.min, expressionBounds.max);
+        // Apply opacity to gene expression colors as well
+        color = [baseColor[0], baseColor[1], baseColor[2], Math.floor(opacity * 255)];
       } else if (showClusters) {
         color = getClusterColorRGBA(cell.cluster, opacity);
       } else {
