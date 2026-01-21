@@ -7,9 +7,10 @@ import { DifferentialExpressionTable } from "@/components/table/DifferentialExpr
 import { ViolinPlot } from "@/components/plots/ViolinPlot";
 import { FeaturePlot } from "@/components/plots/FeaturePlot";
 import { DotPlot } from "@/components/plots/DotPlot";
+import { PathwayEnrichment } from "@/components/analysis/PathwayEnrichment";
 import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset, getGeneExpression } from "@/data/demoData";
-import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType } from "@/types/singleCell";
+import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,10 @@ const Index = () => {
   const [showSideBySide, setShowSideBySide] = useState(false);
   const [dataset1, setDataset1] = useState<SingleCellDataset>(defaultDataset1);
   const [dataset2, setDataset2] = useState<SingleCellDataset>(defaultDataset2);
+  
+  // Selected cells from lasso/rectangle selection
+  const [selectedCells1, setSelectedCells1] = useState<Cell[]>([]);
+  const [selectedCells2, setSelectedCells2] = useState<Cell[]>([]);
   
   // Settings for left/single panel
   const [settings1, setSettings1] = useState<VisualizationSettings>({
@@ -112,6 +117,21 @@ const Index = () => {
     [dataset2.clusters]
   );
 
+  // Get unique genes from selected cells for pathway analysis
+  const selectedCellGenes1 = useMemo(() => {
+    if (selectedCells1.length === 0) return settings1.selectedGenes || [];
+    // Return selected genes from settings (multi-gene selection) when no cells selected
+    return settings1.selectedGenes || [];
+  }, [selectedCells1.length, settings1.selectedGenes]);
+
+  const handleCellsSelected1 = useCallback((cells: Cell[]) => {
+    setSelectedCells1(cells);
+  }, []);
+
+  const handleCellsSelected2 = useCallback((cells: Cell[]) => {
+    setSelectedCells2(cells);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header metadata={dataset1.metadata} />
@@ -172,6 +192,7 @@ const Index = () => {
                     opacity={settings1.opacity}
                     clusterNames={clusterNames1}
                     cellFilter={settings1.cellFilter}
+                    onCellsSelected={handleCellsSelected1}
                   />
                 </div>
                 <ControlPanel
@@ -214,6 +235,7 @@ const Index = () => {
                     opacity={settings2.opacity}
                     clusterNames={clusterNames2}
                     cellFilter={settings2.cellFilter}
+                    onCellsSelected={handleCellsSelected2}
                   />
                 </div>
                 <ControlPanel
@@ -283,6 +305,7 @@ const Index = () => {
                   opacity={settings1.opacity}
                   clusterNames={clusterNames1}
                   cellFilter={settings1.cellFilter}
+                  onCellsSelected={handleCellsSelected1}
                 />
               </div>
 
@@ -297,6 +320,9 @@ const Index = () => {
                   </TabsTrigger>
                   <TabsTrigger value="dotplot">
                     Dot Plot
+                  </TabsTrigger>
+                  <TabsTrigger value="enrichment">
+                    Pathway Enrichment
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="violin">
@@ -330,6 +356,12 @@ const Index = () => {
                     cells={dataset1.cells}
                     genes={settings1.selectedGenes}
                     clusters={dataset1.clusters}
+                  />
+                </TabsContent>
+                <TabsContent value="enrichment">
+                  <PathwayEnrichment
+                    genes={selectedCellGenes1}
+                    onGeneClick={handleGeneClick1}
                   />
                 </TabsContent>
               </Tabs>
