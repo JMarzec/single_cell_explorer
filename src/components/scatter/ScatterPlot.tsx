@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState, useMemo, useCallback } from "react"
 import { Cell, CellFilterState } from "@/types/singleCell";
 import { getClusterColorRGBA } from "@/data/demoData";
 import { CellTooltip } from "./CellTooltip";
+import { ExportControls } from "./ExportControls";
+import { SelectionTools, SelectionMode } from "./SelectionTools";
 
 interface ScatterPlotProps {
   cells: Cell[];
@@ -15,6 +17,7 @@ interface ScatterPlotProps {
   cellFilter?: CellFilterState;
   onCellHover?: (cell: Cell | null) => void;
   onCellClick?: (cell: Cell) => void;
+  onCellsSelected?: (cells: Cell[]) => void;
 }
 
 // Color scale for expression (blue to red through white)
@@ -36,6 +39,31 @@ function expressionToColor(value: number, min: number, max: number): [number, nu
   }
 }
 
+// Check if point is inside polygon (ray casting)
+function pointInPolygon(x: number, y: number, polygon: { x: number; y: number }[]): boolean {
+  if (polygon.length < 3) return false;
+  
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Check if point is inside rectangle
+function pointInRect(x: number, y: number, rect: { x1: number; y1: number; x2: number; y2: number }): boolean {
+  const minX = Math.min(rect.x1, rect.x2);
+  const maxX = Math.max(rect.x1, rect.x2);
+  const minY = Math.min(rect.y1, rect.y2);
+  const maxY = Math.max(rect.y1, rect.y2);
+  return x >= minX && x <= maxX && y >= minY && y <= maxY;
+}
+
 export function ScatterPlot({
   cells,
   expressionData,
@@ -48,6 +76,7 @@ export function ScatterPlot({
   cellFilter,
   onCellHover,
   onCellClick,
+  onCellsSelected,
 }: ScatterPlotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,6 +86,13 @@ export function ScatterPlot({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredCell, setHoveredCell] = useState<Cell | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  
+  // Selection state
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>("none");
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [lassoPoints, setLassoPoints] = useState<{ x: number; y: number }[]>([]);
+  const [rectSelection, setRectSelection] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
 
   // Filter cells based on cellFilter
   const filteredCells = useMemo(() => {
@@ -154,6 +190,26 @@ export function ScatterPlot({
     };
   }, [dimensions, bounds, transform]);
 
+  // Canvas to data coordinates (inverse of dataToCanvas)
+  const canvasToData = useCallback((canvasX: number, canvasY: number) => {
+    const { width, height } = dimensions;
+    const padding = 50;
+    const plotWidth = width - padding * 2;
+    const plotHeight = height - padding * 2;
+    
+    const scaleX = plotWidth / (bounds.maxX - bounds.minX);
+    const scaleY = plotHeight / (bounds.maxY - bounds.minY);
+    
+    // Reverse transform
+    const untransformedX = (canvasX - transform.x - width / 2) / transform.scale + width / 2;
+    const untransformedY = (canvasY - transform.y - height / 2) / transform.scale + height / 2;
+    
+    const dataX = (untransformedX - padding) / scaleX + bounds.minX;
+    const dataY = bounds.maxY - (untransformedY - padding) / scaleY;
+    
+    return { x: dataX, y: dataY };
+  }, [dimensions, bounds, transform]);
+
   // Draw the plot
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -204,16 +260,24 @@ export function ScatterPlot({
       }
       
       let color: [number, number, number, number];
+      const isSelected = selectedCells.has(cell.id);
       
       if (selectedGene && expressionData) {
         const expr = expressionData.get(cell.id) ?? 0;
         const baseColor = expressionToColor(expr, expressionBounds.min, expressionBounds.max);
-        // Apply opacity to gene expression colors as well
         color = [baseColor[0], baseColor[1], baseColor[2], Math.floor(opacity * 255)];
       } else if (showClusters) {
         color = getClusterColorRGBA(cell.cluster, opacity);
       } else {
         color = [100, 140, 200, Math.floor(opacity * 255)];
+      }
+      
+      // Highlight selected cells
+      if (isSelected) {
+        ctx.fillStyle = `rgba(255, 200, 0, 0.9)`;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, scaledPointSize + 2, 0, Math.PI * 2);
+        ctx.fill();
       }
       
       ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})`;
@@ -255,6 +319,34 @@ export function ScatterPlot({
       });
     }
     
+    // Draw selection overlay
+    if (isSelecting) {
+      ctx.strokeStyle = "rgba(59, 130, 246, 0.8)";
+      ctx.fillStyle = "rgba(59, 130, 246, 0.1)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      
+      if (selectionMode === "lasso" && lassoPoints.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+        lassoPoints.forEach((pt, i) => {
+          if (i > 0) ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (selectionMode === "rectangle" && rectSelection) {
+        const width = rectSelection.x2 - rectSelection.x1;
+        const height = rectSelection.y2 - rectSelection.y1;
+        ctx.beginPath();
+        ctx.rect(rectSelection.x1, rectSelection.y1, width, height);
+        ctx.fill();
+        ctx.stroke();
+      }
+      
+      ctx.setLineDash([]);
+    }
+    
     // Draw axes labels
     ctx.fillStyle = "#6b7280";
     ctx.font = "12px Inter, sans-serif";
@@ -267,7 +359,7 @@ export function ScatterPlot({
     ctx.fillText("tSNE2", 0, 0);
     ctx.restore();
     
-  }, [filteredCells, expressionData, selectedGene, pointSize, showClusters, showLabels, opacity, dimensions, bounds, expressionBounds, clusterCenters, transform, dataToCanvas]);
+  }, [filteredCells, expressionData, selectedGene, pointSize, showClusters, showLabels, opacity, dimensions, bounds, expressionBounds, clusterCenters, transform, dataToCanvas, selectedCells, isSelecting, selectionMode, lassoPoints, rectSelection]);
 
   // Handle resize
   useEffect(() => {
@@ -297,29 +389,23 @@ export function ScatterPlot({
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsPanning(true);
-    setPanStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
-  }, [transform]);
-
-  // Canvas to data coordinates (inverse of dataToCanvas)
-  const canvasToData = useCallback((canvasX: number, canvasY: number) => {
-    const { width, height } = dimensions;
-    const padding = 50;
-    const plotWidth = width - padding * 2;
-    const plotHeight = height - padding * 2;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
     
-    const scaleX = plotWidth / (bounds.maxX - bounds.minX);
-    const scaleY = plotHeight / (bounds.maxY - bounds.minY);
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
     
-    // Reverse transform
-    const untransformedX = (canvasX - transform.x - width / 2) / transform.scale + width / 2;
-    const untransformedY = (canvasY - transform.y - height / 2) / transform.scale + height / 2;
-    
-    const dataX = (untransformedX - padding) / scaleX + bounds.minX;
-    const dataY = bounds.maxY - (untransformedY - padding) / scaleY;
-    
-    return { x: dataX, y: dataY };
-  }, [dimensions, bounds, transform]);
+    if (selectionMode === "none") {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+    } else if (selectionMode === "lasso") {
+      setIsSelecting(true);
+      setLassoPoints([{ x: canvasX, y: canvasY }]);
+    } else if (selectionMode === "rectangle") {
+      setIsSelecting(true);
+      setRectSelection({ x1: canvasX, y1: canvasY, x2: canvasX, y2: canvasY });
+    }
+  }, [selectionMode, transform]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -336,10 +422,16 @@ export function ScatterPlot({
         x: e.clientX - panStart.x,
         y: e.clientY - panStart.y,
       }));
-    } else {
+    } else if (isSelecting) {
+      if (selectionMode === "lasso") {
+        setLassoPoints(prev => [...prev, { x: canvasX, y: canvasY }]);
+      } else if (selectionMode === "rectangle") {
+        setRectSelection(prev => prev ? { ...prev, x2: canvasX, y2: canvasY } : null);
+      }
+    } else if (selectionMode === "none") {
       // Find cell under cursor
       const dataPos = canvasToData(canvasX, canvasY);
-      const threshold = 2 / transform.scale; // Scale-adjusted threshold
+      const threshold = 2 / transform.scale;
       
       let closestCell: Cell | null = null;
       let closestDist = Infinity;
@@ -357,21 +449,63 @@ export function ScatterPlot({
       setHoveredCell(closestCell);
       onCellHover?.(closestCell);
     }
-  }, [isPanning, panStart, canvasToData, transform.scale, filteredCells, onCellHover]);
+  }, [isPanning, isSelecting, panStart, canvasToData, transform.scale, filteredCells, onCellHover, selectionMode]);
 
   const handleMouseUp = useCallback(() => {
+    if (isSelecting) {
+      // Process selection
+      const newSelectedCells = new Set<string>();
+      
+      filteredCells.forEach(cell => {
+        const pos = dataToCanvas(cell.x, cell.y);
+        
+        if (selectionMode === "lasso" && lassoPoints.length > 2) {
+          if (pointInPolygon(pos.x, pos.y, lassoPoints)) {
+            newSelectedCells.add(cell.id);
+          }
+        } else if (selectionMode === "rectangle" && rectSelection) {
+          if (pointInRect(pos.x, pos.y, rectSelection)) {
+            newSelectedCells.add(cell.id);
+          }
+        }
+      });
+      
+      setSelectedCells(newSelectedCells);
+      
+      // Notify parent of selected cells
+      if (onCellsSelected) {
+        const selected = filteredCells.filter(c => newSelectedCells.has(c.id));
+        onCellsSelected(selected);
+      }
+    }
+    
     setIsPanning(false);
-  }, []);
+    setIsSelecting(false);
+    setLassoPoints([]);
+    setRectSelection(null);
+  }, [isSelecting, filteredCells, dataToCanvas, selectionMode, lassoPoints, rectSelection, onCellsSelected]);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (hoveredCell && onCellClick) {
+  const handleClick = useCallback(() => {
+    if (selectionMode === "none" && hoveredCell && onCellClick) {
       onCellClick(hoveredCell);
     }
-  }, [hoveredCell, onCellClick]);
+  }, [selectionMode, hoveredCell, onCellClick]);
 
   const handleDoubleClick = useCallback(() => {
     setTransform({ x: 0, y: 0, scale: 1 });
   }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedCells(new Set());
+    onCellsSelected?.([]);
+  }, [onCellsSelected]);
+
+  const getCursor = () => {
+    if (selectionMode === "lasso") return "crosshair";
+    if (selectionMode === "rectangle") return "crosshair";
+    if (hoveredCell) return "pointer";
+    return isPanning ? "grabbing" : "grab";
+  };
 
   return (
     <div 
@@ -382,7 +516,7 @@ export function ScatterPlot({
         ref={canvasRef}
         width={dimensions.width}
         height={dimensions.height}
-        className={hoveredCell ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}
+        style={{ cursor: getCursor() }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -394,6 +528,31 @@ export function ScatterPlot({
         onDoubleClick={handleDoubleClick}
         onClick={handleClick}
       />
+      
+      {/* Top toolbar */}
+      <div className="absolute top-4 left-4 flex items-center gap-2">
+        <SelectionTools
+          mode={selectionMode}
+          onModeChange={setSelectionMode}
+          selectedCount={selectedCells.size}
+          onClearSelection={handleClearSelection}
+        />
+      </div>
+      
+      {/* Export button */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        {selectedGene && (
+          <div className="bg-card/95 border border-border rounded-lg p-3 shadow-sm mr-2">
+            <div className="text-xs font-medium text-foreground mb-2">{selectedGene}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Low</span>
+              <div className="w-24 h-3 rounded gradient-expression" />
+              <span className="text-xs text-muted-foreground">High</span>
+            </div>
+          </div>
+        )}
+        <ExportControls canvasRef={canvasRef} filename={`scatter-${selectedGene || 'clusters'}`} />
+      </div>
       
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-1">
@@ -417,18 +576,6 @@ export function ScatterPlot({
           ⌂
         </button>
       </div>
-      
-      {/* Expression legend */}
-      {selectedGene && (
-        <div className="absolute top-4 right-4 bg-card/95 border border-border rounded-lg p-3 shadow-sm">
-          <div className="text-xs font-medium text-foreground mb-2">{selectedGene}</div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Low</span>
-            <div className="w-24 h-3 rounded gradient-expression" />
-            <span className="text-xs text-muted-foreground">High</span>
-          </div>
-        </div>
-      )}
 
       {/* Cell tooltip */}
       <CellTooltip
