@@ -44,6 +44,10 @@ export interface SingleCellDataset {
   genes: string[];
   clusters: ClusterInfo[];
   differentialExpression: DifferentialExpression[];
+  // Expression matrix: gene -> (cellId -> expression value)
+  expression?: Record<string, Record<string, number>>;
+  // Metadata annotation options (e.g., cell_type, sample)
+  annotationOptions?: string[];
 }
 
 export type ColorPalette = 'viridis' | 'magma' | 'plasma' | 'inferno' | 'grrd' | 'blues';

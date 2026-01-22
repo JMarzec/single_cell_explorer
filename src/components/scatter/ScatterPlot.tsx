@@ -5,6 +5,12 @@ import { CellTooltip } from "./CellTooltip";
 import { ExportControls } from "./ExportControls";
 import { SelectionTools, SelectionMode } from "./SelectionTools";
 
+interface AnnotationData {
+  values: string[];
+  colorMap: Record<string, string>;
+  getCellValue: (cell: Cell) => string;
+}
+
 interface ScatterPlotProps {
   cells: Cell[];
   expressionData?: Map<string, number>;
@@ -15,9 +21,50 @@ interface ScatterPlotProps {
   opacity: number;
   clusterNames: string[];
   cellFilter?: CellFilterState;
+  annotationData?: AnnotationData;
   onCellHover?: (cell: Cell | null) => void;
   onCellClick?: (cell: Cell) => void;
   onCellsSelected?: (cells: Cell[]) => void;
+}
+
+// Parse color string to RGBA
+function parseColorToRGBA(color: string, alpha: number = 1): [number, number, number, number] {
+  // Handle rgb(r, g, b) format
+  const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (rgbMatch) {
+    return [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3]), Math.floor(alpha * 255)];
+  }
+  
+  // Handle hsl(h, s%, l%) format
+  const hslMatch = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (hslMatch) {
+    const h = parseInt(hslMatch[1]) / 360;
+    const s = parseInt(hslMatch[2]) / 100;
+    const l = parseInt(hslMatch[3]) / 100;
+    
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), Math.floor(alpha * 255)];
+  }
+  
+  // Default fallback
+  return [100, 140, 200, Math.floor(alpha * 255)];
 }
 
 // Color scale for expression (blue to red through white)
@@ -74,6 +121,7 @@ export function ScatterPlot({
   opacity,
   clusterNames,
   cellFilter,
+  annotationData,
   onCellHover,
   onCellClick,
   onCellsSelected,
@@ -266,6 +314,11 @@ export function ScatterPlot({
         const expr = expressionData.get(cell.id) ?? 0;
         const baseColor = expressionToColor(expr, expressionBounds.min, expressionBounds.max);
         color = [baseColor[0], baseColor[1], baseColor[2], Math.floor(opacity * 255)];
+      } else if (annotationData) {
+        // Use annotation-based coloring
+        const annotationValue = annotationData.getCellValue(cell);
+        const annotationColor = annotationData.colorMap[annotationValue];
+        color = parseColorToRGBA(annotationColor || 'rgb(100, 140, 200)', opacity);
       } else if (showClusters) {
         color = getClusterColorRGBA(cell.cluster, opacity);
       } else {

@@ -92,6 +92,7 @@ function generateCells(count: number): Cell[] {
           nFeature_RNA: Math.floor(1500 + Math.random() * 3500),
           percent_mt: Math.round((2 + Math.random() * 6) * 100) / 100,
           sample: `Sample_${Math.floor(Math.random() * 3) + 1}`,
+          cell_type: CLUSTER_NAMES[clusterIdx],
         },
       });
     }
@@ -166,6 +167,7 @@ export function generateDemoDataset(cellCount: number = 15000): SingleCellDatase
     genes: ALL_GENES.sort(),
     clusters,
     differentialExpression: generateDifferentialExpression(),
+    annotationOptions: ["cell_type", "sample"],
   };
 }
 

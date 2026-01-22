@@ -2,31 +2,25 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Header } from "@/components/layout/Header";
 import { ScatterPlot } from "@/components/scatter/ScatterPlot";
 import { ControlPanel } from "@/components/controls/ControlPanel";
-import { CellFilter, CellFilterState } from "@/components/controls/CellFilter";
+import { CellFilter } from "@/components/controls/CellFilter";
 import { DifferentialExpressionTable } from "@/components/table/DifferentialExpressionTable";
 import { ViolinPlot } from "@/components/plots/ViolinPlot";
 import { FeaturePlot } from "@/components/plots/FeaturePlot";
 import { DotPlot } from "@/components/plots/DotPlot";
 import { PathwayEnrichment } from "@/components/analysis/PathwayEnrichment";
 import { DatasetUploader } from "@/components/upload/DatasetUploader";
-import { generateDemoDataset, getGeneExpression } from "@/data/demoData";
+import { generateDemoDataset } from "@/data/demoData";
+import { getExpressionData, getMultiGeneExpression, getAnnotationValues, getAnnotationColorMap } from "@/lib/expressionUtils";
 import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PanelLeft, PanelLeftClose, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Generate two demo datasets for side-by-side comparison
-const defaultDataset1 = generateDemoDataset(15000);
-const defaultDataset2: SingleCellDataset = {
-  ...generateDemoDataset(12000),
-  metadata: {
-    ...generateDemoDataset(12000).metadata,
-    name: "Heart Development - E14.5",
-    description: "Developing mouse heart at E14.5, companion dataset for comparative analysis."
-  }
-};
+// Generate demo dataset
+const defaultDataset = generateDemoDataset(15000);
 
 const defaultCellFilter: CellFilterType = {
   selectedSamples: [],
@@ -34,16 +28,16 @@ const defaultCellFilter: CellFilterType = {
 };
 
 const Index = () => {
-  const [showSideBySide, setShowSideBySide] = useState(false);
-  const [dataset1, setDataset1] = useState<SingleCellDataset>(defaultDataset1);
-  const [dataset2, setDataset2] = useState<SingleCellDataset>(defaultDataset2);
+  const [dataset, setDataset] = useState<SingleCellDataset>(defaultDataset);
   
   // Selected cells from lasso/rectangle selection
-  const [selectedCells1, setSelectedCells1] = useState<Cell[]>([]);
-  const [selectedCells2, setSelectedCells2] = useState<Cell[]>([]);
+  const [selectedCells, setSelectedCells] = useState<Cell[]>([]);
   
-  // Settings for left/single panel
-  const [settings1, setSettings1] = useState<VisualizationSettings>({
+  // Annotation selection for left plot
+  const [selectedAnnotation, setSelectedAnnotation] = useState<string>("cell_type");
+  
+  // Settings for visualization
+  const [settings, setSettings] = useState<VisualizationSettings>({
     pointSize: 2,
     showClusters: true,
     showLabels: true,
@@ -54,120 +48,98 @@ const Index = () => {
     cellFilter: defaultCellFilter,
   });
 
-  // Settings for right panel (side-by-side mode)
-  const [settings2, setSettings2] = useState<VisualizationSettings>({
-    pointSize: 2,
-    showClusters: true,
-    showLabels: true,
-    colorPalette: "viridis",
-    selectedGene: null,
-    selectedGenes: [],
-    opacity: 0.8,
-    cellFilter: defaultCellFilter,
-  });
-
-  const handleSettingsChange1 = useCallback(
+  const handleSettingsChange = useCallback(
     (updates: Partial<VisualizationSettings>) => {
-      setSettings1((prev) => ({ ...prev, ...updates }));
+      setSettings((prev) => ({ ...prev, ...updates }));
     },
     []
   );
 
-  const handleSettingsChange2 = useCallback(
-    (updates: Partial<VisualizationSettings>) => {
-      setSettings2((prev) => ({ ...prev, ...updates }));
-    },
-    []
+  // Get expression data for selected gene
+  const expressionData = useMemo(() => {
+    if (!settings.selectedGene) return undefined;
+    return getExpressionData(dataset, settings.selectedGene);
+  }, [settings.selectedGene, dataset]);
+
+  // Get expression data for all selected genes (for dot plot)
+  const multiGeneExpressionData = useMemo(() => {
+    const genes = settings.selectedGenes || [];
+    if (genes.length === 0) return {};
+    return getMultiGeneExpression(dataset, genes);
+  }, [settings.selectedGenes, dataset]);
+
+  const handleDatasetLoad = useCallback((newDataset: SingleCellDataset) => {
+    setDataset(newDataset);
+    setSettings(prev => ({ ...prev, selectedGene: null, selectedGenes: [], cellFilter: defaultCellFilter }));
+    // Set default annotation if cell_type exists
+    const annotations = newDataset.annotationOptions || [];
+    if (annotations.includes("cell_type")) {
+      setSelectedAnnotation("cell_type");
+    } else if (annotations.length > 0) {
+      setSelectedAnnotation(annotations[0]);
+    }
+  }, []);
+
+  const handleGeneClick = useCallback((gene: string) => {
+    setSettings((prev) => ({ ...prev, selectedGene: gene }));
+  }, []);
+
+  const clusterNames = useMemo(
+    () => dataset.clusters.map((c) => c.name),
+    [dataset.clusters]
   );
 
-  const expressionData1 = useMemo(() => {
-    if (!settings1.selectedGene) return undefined;
-    return getGeneExpression(dataset1.cells, settings1.selectedGene);
-  }, [settings1.selectedGene, dataset1.cells]);
+  // Get annotation options for the left plot
+  const annotationOptions = useMemo(() => {
+    const options = dataset.annotationOptions || [];
+    // Always include cluster as an option
+    if (!options.includes("cluster")) {
+      return ["cluster", ...options];
+    }
+    return options;
+  }, [dataset.annotationOptions]);
 
-  const expressionData2 = useMemo(() => {
-    if (!settings2.selectedGene) return undefined;
-    return getGeneExpression(dataset2.cells, settings2.selectedGene);
-  }, [settings2.selectedGene, dataset2.cells]);
+  // Get annotation values and colors for current selection
+  const annotationData = useMemo(() => {
+    if (selectedAnnotation === "cluster") {
+      return {
+        values: dataset.clusters.map(c => c.name),
+        colorMap: Object.fromEntries(dataset.clusters.map(c => [c.name, c.color])),
+        getCellValue: (cell: Cell) => dataset.clusters[cell.cluster]?.name || `Cluster ${cell.cluster}`,
+      };
+    }
+    
+    const values = getAnnotationValues(dataset.cells, selectedAnnotation);
+    const colorMap = getAnnotationColorMap(values);
+    
+    return {
+      values,
+      colorMap,
+      getCellValue: (cell: Cell) => String(cell.metadata[selectedAnnotation] || "Unknown"),
+    };
+  }, [dataset, selectedAnnotation]);
 
-  const handleDatasetLoad1 = useCallback((newDataset: SingleCellDataset) => {
-    setDataset1(newDataset);
-    setSettings1(prev => ({ ...prev, selectedGene: null, selectedGenes: [], cellFilter: defaultCellFilter }));
-  }, []);
+  // Get genes from selected cells for pathway analysis
+  const selectedCellGenes = useMemo(() => {
+    if (selectedCells.length === 0) return settings.selectedGenes || [];
+    return settings.selectedGenes || [];
+  }, [selectedCells.length, settings.selectedGenes]);
 
-  const handleDatasetLoad2 = useCallback((newDataset: SingleCellDataset) => {
-    setDataset2(newDataset);
-    setSettings2(prev => ({ ...prev, selectedGene: null, selectedGenes: [], cellFilter: defaultCellFilter }));
-  }, []);
-
-  const handleGeneClick1 = useCallback((gene: string) => {
-    setSettings1((prev) => ({ ...prev, selectedGene: gene }));
-  }, []);
-
-  const handleGeneClick2 = useCallback((gene: string) => {
-    setSettings2((prev) => ({ ...prev, selectedGene: gene }));
-  }, []);
-
-  const clusterNames1 = useMemo(
-    () => dataset1.clusters.map((c) => c.name),
-    [dataset1.clusters]
-  );
-
-  const clusterNames2 = useMemo(
-    () => dataset2.clusters.map((c) => c.name),
-    [dataset2.clusters]
-  );
-
-  // Get unique genes from selected cells for pathway analysis
-  const selectedCellGenes1 = useMemo(() => {
-    if (selectedCells1.length === 0) return settings1.selectedGenes || [];
-    // Return selected genes from settings (multi-gene selection) when no cells selected
-    return settings1.selectedGenes || [];
-  }, [selectedCells1.length, settings1.selectedGenes]);
-
-  const handleCellsSelected1 = useCallback((cells: Cell[]) => {
-    setSelectedCells1(cells);
-  }, []);
-
-  const handleCellsSelected2 = useCallback((cells: Cell[]) => {
-    setSelectedCells2(cells);
+  const handleCellsSelected = useCallback((cells: Cell[]) => {
+    setSelectedCells(cells);
   }, []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header metadata={dataset1.metadata} />
+      <Header metadata={dataset.metadata} />
 
       <main className="flex-1 container mx-auto px-4 py-6">
         {/* Controls row */}
         <div className="mb-4 flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg">
-            {showSideBySide ? (
-              <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <PanelLeft className="h-4 w-4 text-muted-foreground" />
-            )}
-            <Label htmlFor="side-by-side" className="text-sm font-medium cursor-pointer">
-              Side-by-side comparison
-            </Label>
-            <Switch
-              id="side-by-side"
-              checked={showSideBySide}
-              onCheckedChange={setShowSideBySide}
-            />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <DatasetUploader 
-              onDatasetLoad={handleDatasetLoad1} 
-              buttonVariant="outline"
-            />
-            {showSideBySide && (
-              <DatasetUploader 
-                onDatasetLoad={handleDatasetLoad2} 
-                buttonVariant="ghost"
-              />
-            )}
-          </div>
+          <DatasetUploader 
+            onDatasetLoad={handleDatasetLoad} 
+            buttonVariant="outline"
+          />
           
           <Button variant="ghost" size="sm" asChild>
             <a href="/export_template.R" download className="gap-2">
@@ -177,232 +149,218 @@ const Index = () => {
           </Button>
         </div>
 
-        {showSideBySide ? (
-          // Side-by-side layout
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* Left Dataset */}
-              <div className="space-y-4">
-                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                  <h2 className="font-semibold text-foreground">{dataset1.metadata.name}</h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {dataset1.metadata.cellCount.toLocaleString()} cells • {dataset1.metadata.clusterCount} clusters
-                  </p>
-                </div>
-                <div className="h-[400px]">
-                  <ScatterPlot
-                    cells={dataset1.cells}
-                    expressionData={expressionData1}
-                    selectedGene={settings1.selectedGene}
-                    pointSize={settings1.pointSize}
-                    showClusters={settings1.showClusters}
-                    showLabels={settings1.showLabels}
-                    opacity={settings1.opacity}
-                    clusterNames={clusterNames1}
-                    cellFilter={settings1.cellFilter}
-                    onCellsSelected={handleCellsSelected1}
-                  />
-                </div>
-                <ControlPanel
-                  genes={dataset1.genes}
-                  clusters={dataset1.clusters}
-                  settings={settings1}
-                  onSettingsChange={handleSettingsChange1}
-                />
-                <CellFilter
-                  cells={dataset1.cells}
-                  clusters={dataset1.clusters}
-                  filter={settings1.cellFilter}
-                  onFilterChange={(filter) => handleSettingsChange1({ cellFilter: filter })}
-                />
-                {settings1.selectedGene && (
-                  <ViolinPlot 
-                    cells={dataset1.cells} 
-                    gene={settings1.selectedGene} 
-                    clusters={dataset1.clusters}
-                  />
-                )}
-              </div>
-
-              {/* Right Dataset */}
-              <div className="space-y-4">
-                <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg">
-                  <h2 className="font-semibold text-foreground">{dataset2.metadata.name}</h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {dataset2.metadata.cellCount.toLocaleString()} cells • {dataset2.metadata.clusterCount} clusters
-                  </p>
-                </div>
-                <div className="h-[400px]">
-                  <ScatterPlot
-                    cells={dataset2.cells}
-                    expressionData={expressionData2}
-                    selectedGene={settings2.selectedGene}
-                    pointSize={settings2.pointSize}
-                    showClusters={settings2.showClusters}
-                    showLabels={settings2.showLabels}
-                    opacity={settings2.opacity}
-                    clusterNames={clusterNames2}
-                    cellFilter={settings2.cellFilter}
-                    onCellsSelected={handleCellsSelected2}
-                  />
-                </div>
-                <ControlPanel
-                  genes={dataset2.genes}
-                  clusters={dataset2.clusters}
-                  settings={settings2}
-                  onSettingsChange={handleSettingsChange2}
-                />
-                <CellFilter
-                  cells={dataset2.cells}
-                  clusters={dataset2.clusters}
-                  filter={settings2.cellFilter}
-                  onFilterChange={(filter) => handleSettingsChange2({ cellFilter: filter })}
-                />
-                {settings2.selectedGene && (
-                  <ViolinPlot 
-                    cells={dataset2.cells} 
-                    gene={settings2.selectedGene} 
-                    clusters={dataset2.clusters}
-                  />
-                )}
-              </div>
+        {/* Dual Plot Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Left Plot - Metadata Annotation */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
+              <h3 className="font-semibold text-foreground">Metadata Annotation</h3>
+              <Select value={selectedAnnotation} onValueChange={setSelectedAnnotation}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Select annotation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {annotationOptions.map(opt => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            {/* Differential Expression Tables */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <DifferentialExpressionTable
-                data={dataset1.differentialExpression}
-                onGeneClick={handleGeneClick1}
-              />
-              <DifferentialExpressionTable
-                data={dataset2.differentialExpression}
-                onGeneClick={handleGeneClick2}
+            
+            <div className="h-[450px]">
+              <ScatterPlot
+                cells={dataset.cells}
+                selectedGene={null}
+                pointSize={settings.pointSize}
+                showClusters={true}
+                showLabels={settings.showLabels}
+                opacity={settings.opacity}
+                clusterNames={clusterNames}
+                cellFilter={settings.cellFilter}
+                annotationData={annotationData}
+                onCellsSelected={handleCellsSelected}
               />
             </div>
-          </div>
-        ) : (
-          // Single view layout
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Control Panel - Left Sidebar */}
-            <div className="lg:col-span-1 order-2 lg:order-1 space-y-4">
-              <ControlPanel
-                genes={dataset1.genes}
-                clusters={dataset1.clusters}
-                settings={settings1}
-                onSettingsChange={handleSettingsChange1}
-              />
-              <CellFilter
-                cells={dataset1.cells}
-                clusters={dataset1.clusters}
-                filter={settings1.cellFilter}
-                onFilterChange={(filter) => handleSettingsChange1({ cellFilter: filter })}
-              />
-            </div>
-
-            {/* Main Visualization Area */}
-            <div className="lg:col-span-3 order-1 lg:order-2 space-y-6">
-              {/* Scatter Plot */}
-              <div className="h-[500px]">
-                <ScatterPlot
-                  cells={dataset1.cells}
-                  expressionData={expressionData1}
-                  selectedGene={settings1.selectedGene}
-                  pointSize={settings1.pointSize}
-                  showClusters={settings1.showClusters}
-                  showLabels={settings1.showLabels}
-                  opacity={settings1.opacity}
-                  clusterNames={clusterNames1}
-                  cellFilter={settings1.cellFilter}
-                  onCellsSelected={handleCellsSelected1}
-                />
-              </div>
-
-              {/* Expression Plots */}
-              <Tabs defaultValue="violin" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="violin" disabled={!settings1.selectedGene}>
-                    Violin Plot
-                  </TabsTrigger>
-                  <TabsTrigger value="feature" disabled={!settings1.selectedGene}>
-                    Feature Plot
-                  </TabsTrigger>
-                  <TabsTrigger value="dotplot">
-                    Dot Plot
-                  </TabsTrigger>
-                  <TabsTrigger value="enrichment">
-                    Pathway Enrichment
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="violin">
-                  {settings1.selectedGene ? (
-                    <ViolinPlot 
-                      cells={dataset1.cells} 
-                      gene={settings1.selectedGene} 
-                      clusters={dataset1.clusters}
-                    />
-                  ) : (
-                    <div className="bg-card border border-border rounded-lg p-8 text-center">
-                      <p className="text-muted-foreground">Select a gene to display violin plot</p>
+            
+            {/* Annotation Legend */}
+            <div className="bg-card border border-border rounded-lg p-3">
+              <h4 className="text-sm font-medium text-foreground mb-2">
+                {selectedAnnotation.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </h4>
+              <div className="max-h-32 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-1">
+                  {annotationData.values.slice(0, 20).map((value, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: annotationData.colorMap[value] }}
+                      />
+                      <span className="text-muted-foreground truncate">{value}</span>
+                    </div>
+                  ))}
+                  {annotationData.values.length > 20 && (
+                    <div className="text-xs text-muted-foreground col-span-2">
+                      +{annotationData.values.length - 20} more...
                     </div>
                   )}
-                </TabsContent>
-                <TabsContent value="feature">
-                  {settings1.selectedGene ? (
-                    <FeaturePlot 
-                      cells={dataset1.cells} 
-                      gene={settings1.selectedGene} 
-                      clusters={dataset1.clusters}
-                    />
-                  ) : (
-                    <div className="bg-card border border-border rounded-lg p-8 text-center">
-                      <p className="text-muted-foreground">Select a gene to display feature plot</p>
-                    </div>
-                  )}
-                </TabsContent>
-                <TabsContent value="dotplot">
-                  <DotPlot
-                    cells={dataset1.cells}
-                    genes={settings1.selectedGenes}
-                    clusters={dataset1.clusters}
-                  />
-                </TabsContent>
-                <TabsContent value="enrichment">
-                  <PathwayEnrichment
-                    genes={selectedCellGenes1}
-                    onGeneClick={handleGeneClick1}
-                  />
-                </TabsContent>
-              </Tabs>
-
-              {/* Differential Expression Table */}
-              <DifferentialExpressionTable
-                data={dataset1.differentialExpression}
-                onGeneClick={handleGeneClick1}
-              />
+                </div>
+              </div>
             </div>
           </div>
-        )}
+
+          {/* Right Plot - Gene Expression */}
+          <div className="space-y-4">
+            <div className="p-3 bg-card border border-border rounded-lg">
+              <h3 className="font-semibold text-foreground">
+                Gene Expression
+                {settings.selectedGene && (
+                  <span className="ml-2 text-primary font-mono text-sm">({settings.selectedGene})</span>
+                )}
+              </h3>
+            </div>
+            
+            <div className="h-[450px]">
+              <ScatterPlot
+                cells={dataset.cells}
+                expressionData={expressionData}
+                selectedGene={settings.selectedGene}
+                pointSize={settings.pointSize}
+                showClusters={!settings.selectedGene}
+                showLabels={settings.showLabels}
+                opacity={settings.opacity}
+                clusterNames={clusterNames}
+                cellFilter={settings.cellFilter}
+                onCellsSelected={handleCellsSelected}
+              />
+            </div>
+            
+            {/* Expression Color Legend */}
+            {settings.selectedGene && (
+              <div className="bg-card border border-border rounded-lg p-3">
+                <h4 className="text-sm font-medium text-foreground mb-2">Expression Level</h4>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Low</span>
+                  <div 
+                    className="flex-1 h-3 rounded"
+                    style={{
+                      background: 'linear-gradient(to right, rgb(180, 180, 180), rgb(255, 255, 255) 50%, rgb(255, 75, 55))'
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">High</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Control Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <ControlPanel
+              genes={dataset.genes}
+              clusters={dataset.clusters}
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+            />
+            <CellFilter
+              cells={dataset.cells}
+              clusters={dataset.clusters}
+              filter={settings.cellFilter}
+              onFilterChange={(filter) => handleSettingsChange({ cellFilter: filter })}
+            />
+          </div>
+
+          {/* Analysis Tabs */}
+          <div className="lg:col-span-3 space-y-6">
+            <Tabs defaultValue="violin" className="w-full">
+              <TabsList>
+                <TabsTrigger value="violin" disabled={!settings.selectedGene}>
+                  Violin Plot
+                </TabsTrigger>
+                <TabsTrigger value="feature" disabled={!settings.selectedGene}>
+                  Feature Plot
+                </TabsTrigger>
+                <TabsTrigger value="dotplot">
+                  Dot Plot
+                </TabsTrigger>
+                <TabsTrigger value="enrichment">
+                  Pathway Enrichment
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="violin">
+                {settings.selectedGene && expressionData ? (
+                  <ViolinPlot 
+                    cells={dataset.cells} 
+                    gene={settings.selectedGene} 
+                    clusters={dataset.clusters}
+                    expressionData={expressionData}
+                  />
+                ) : (
+                  <div className="bg-card border border-border rounded-lg p-8 text-center">
+                    <p className="text-muted-foreground">Select a gene to display violin plot</p>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="feature">
+                {settings.selectedGene && expressionData ? (
+                  <FeaturePlot 
+                    cells={dataset.cells} 
+                    gene={settings.selectedGene} 
+                    clusters={dataset.clusters}
+                    expressionData={expressionData}
+                  />
+                ) : (
+                  <div className="bg-card border border-border rounded-lg p-8 text-center">
+                    <p className="text-muted-foreground">Select a gene to display feature plot</p>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="dotplot">
+                <DotPlot
+                  cells={dataset.cells}
+                  genes={settings.selectedGenes || []}
+                  clusters={dataset.clusters}
+                  expressionDataMap={multiGeneExpressionData}
+                />
+              </TabsContent>
+              <TabsContent value="enrichment">
+                <PathwayEnrichment
+                  genes={selectedCellGenes}
+                  onGeneClick={handleGeneClick}
+                />
+              </TabsContent>
+            </Tabs>
+
+            {/* Differential Expression Table */}
+            <DifferentialExpressionTable
+              data={dataset.differentialExpression}
+              onGeneClick={handleGeneClick}
+            />
+          </div>
+        </div>
 
         {/* Dataset Info */}
         <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
           <p className="text-sm text-muted-foreground">
             <strong className="text-foreground">About this dataset:</strong>{" "}
-            {dataset1.metadata.description}
+            {dataset.metadata.description}
           </p>
           <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-            {dataset1.metadata.organism && (
+            {dataset.metadata.organism && (
               <span>
-                <strong>Organism:</strong> {dataset1.metadata.organism}
+                <strong>Organism:</strong> {dataset.metadata.organism}
               </span>
             )}
-            {dataset1.metadata.tissue && (
+            {dataset.metadata.tissue && (
               <span>
-                <strong>Tissue:</strong> {dataset1.metadata.tissue}
+                <strong>Tissue:</strong> {dataset.metadata.tissue}
               </span>
             )}
-            {dataset1.metadata.source && (
+            {dataset.metadata.source && (
               <span>
-                <strong>Source:</strong> {dataset1.metadata.source}
+                <strong>Source:</strong> {dataset.metadata.source}
               </span>
             )}
           </div>

@@ -1,21 +1,19 @@
 import React, { useMemo } from "react";
 import { Cell, ClusterInfo } from "@/types/singleCell";
-import { getGeneExpression } from "@/data/demoData";
 
 interface FeaturePlotProps {
   cells: Cell[];
   gene: string;
   clusters: ClusterInfo[];
+  expressionData: Map<string, number>;
   height?: number;
 }
 
-export function FeaturePlot({ cells, gene, clusters, height = 200 }: FeaturePlotProps) {
+export function FeaturePlot({ cells, gene, clusters, expressionData, height = 200 }: FeaturePlotProps) {
   const plotData = useMemo(() => {
-    const expressionMap = getGeneExpression(cells, gene);
-    
     return clusters.map(cluster => {
       const clusterCells = cells.filter(c => c.cluster === cluster.id);
-      const values = clusterCells.map(c => expressionMap.get(c.id) ?? 0);
+      const values = clusterCells.map(c => expressionData.get(c.id) ?? 0);
       const expressing = values.filter(v => v > 0.5);
       
       const meanExpr = values.length > 0 
@@ -34,7 +32,7 @@ export function FeaturePlot({ cells, gene, clusters, height = 200 }: FeaturePlot
         cellCount: clusterCells.length,
       };
     });
-  }, [cells, gene, clusters]);
+  }, [cells, clusters, expressionData]);
 
   const maxMean = useMemo(() => 
     Math.max(...plotData.map(d => d.meanExpression), 0.1), 

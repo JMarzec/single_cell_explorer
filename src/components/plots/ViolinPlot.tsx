@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import { Cell, ClusterInfo } from "@/types/singleCell";
-import { getGeneExpression } from "@/data/demoData";
 
 interface ViolinPlotProps {
   cells: Cell[];
   gene: string;
   clusters: ClusterInfo[];
+  expressionData: Map<string, number>;
   height?: number;
 }
 
@@ -39,13 +39,11 @@ function kernelDensityEstimator(values: number[], bandwidth: number, points: num
   });
 }
 
-export function ViolinPlot({ cells, gene, clusters, height = 300 }: ViolinPlotProps) {
+export function ViolinPlot({ cells, gene, clusters, expressionData, height = 300 }: ViolinPlotProps) {
   const violinData = useMemo(() => {
-    const expressionMap = getGeneExpression(cells, gene);
-    
     const data: ViolinData[] = clusters.map(cluster => {
       const clusterCells = cells.filter(c => c.cluster === cluster.id);
-      const values = clusterCells.map(c => expressionMap.get(c.id) ?? 0).sort((a, b) => a - b);
+      const values = clusterCells.map(c => expressionData.get(c.id) ?? 0).sort((a, b) => a - b);
       
       return {
         clusterId: cluster.id,
@@ -61,7 +59,7 @@ export function ViolinPlot({ cells, gene, clusters, height = 300 }: ViolinPlotPr
     });
     
     return data;
-  }, [cells, gene, clusters]);
+  }, [cells, clusters, expressionData]);
 
   const globalMax = useMemo(() => {
     return Math.max(...violinData.map(d => d.max), 0.1);

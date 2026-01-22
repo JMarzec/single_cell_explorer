@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import { Cell, ClusterInfo } from "@/types/singleCell";
-import { getGeneExpression } from "@/data/demoData";
 
 interface DotPlotProps {
   cells: Cell[];
   genes: string[];
   clusters: ClusterInfo[];
+  expressionDataMap: Record<string, Map<string, number>>;
 }
 
 interface DotData {
@@ -15,12 +15,12 @@ interface DotData {
   percentExpressing: number;
 }
 
-export function DotPlot({ cells, genes, clusters }: DotPlotProps) {
+export function DotPlot({ cells, genes, clusters, expressionDataMap }: DotPlotProps) {
   const dotData = useMemo(() => {
     const data: DotData[] = [];
 
     genes.forEach((gene) => {
-      const expression = getGeneExpression(cells, gene);
+      const expression = expressionDataMap[gene] || new Map();
 
       clusters.forEach((cluster) => {
         const clusterCells = cells.filter((c) => c.cluster === cluster.id);
@@ -48,7 +48,7 @@ export function DotPlot({ cells, genes, clusters }: DotPlotProps) {
     });
 
     return data;
-  }, [cells, genes, clusters]);
+  }, [cells, genes, clusters, expressionDataMap]);
 
   // Calculate scales
   const maxMean = useMemo(

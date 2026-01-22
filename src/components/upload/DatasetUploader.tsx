@@ -118,12 +118,25 @@ function normalizeDataset(data: unknown): SingleCellDataset {
     pAdj: Number(de.pAdj),
   }));
   
+  // Normalize expression data
+  const rawExpression = obj.expression as Record<string, Record<string, number>> | undefined;
+  const expression = rawExpression || undefined;
+  
+  // Extract annotation options from first cell's metadata
+  const annotationOptions = cells.length > 0 
+    ? Object.keys(cells[0].metadata).filter(key => 
+        typeof cells[0].metadata[key] === 'string'
+      )
+    : [];
+  
   return {
     metadata,
     cells,
     genes: (obj.genes as string[]) || [],
     clusters,
     differentialExpression,
+    expression,
+    annotationOptions,
   };
 }
 
