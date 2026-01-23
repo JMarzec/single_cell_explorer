@@ -8,6 +8,7 @@ import { ViolinPlot } from "@/components/plots/ViolinPlot";
 import { FeaturePlot } from "@/components/plots/FeaturePlot";
 import { DotPlot } from "@/components/plots/DotPlot";
 import { PathwayEnrichment } from "@/components/analysis/PathwayEnrichment";
+import { TrajectoryAnalysis } from "@/components/analysis/TrajectoryAnalysis";
 import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset } from "@/data/demoData";
 import { getExpressionData, getMultiGeneExpression, getAnnotationValues, getAnnotationColorMap } from "@/lib/expressionUtils";
@@ -102,10 +103,12 @@ const Index = () => {
   // Get annotation values and colors for current selection
   const annotationData = useMemo(() => {
     if (selectedAnnotation === "cluster") {
+      // Show cluster numbers (0, 1, 2, ...) not cell type names
+      const clusterIds = dataset.clusters.map(c => `Cluster ${c.id}`);
       return {
-        values: dataset.clusters.map(c => c.name),
-        colorMap: Object.fromEntries(dataset.clusters.map(c => [c.name, c.color])),
-        getCellValue: (cell: Cell) => dataset.clusters[cell.cluster]?.name || `Cluster ${cell.cluster}`,
+        values: clusterIds,
+        colorMap: Object.fromEntries(dataset.clusters.map(c => [`Cluster ${c.id}`, c.color])),
+        getCellValue: (cell: Cell) => `Cluster ${cell.cluster}`,
       };
     }
     
@@ -288,6 +291,9 @@ const Index = () => {
                 <TabsTrigger value="enrichment">
                   Pathway Enrichment
                 </TabsTrigger>
+                <TabsTrigger value="trajectory">
+                  Trajectory
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="violin">
                 {settings.selectedGene && expressionData ? (
@@ -331,6 +337,12 @@ const Index = () => {
                   onGeneClick={handleGeneClick}
                 />
               </TabsContent>
+              <TabsContent value="trajectory">
+                <TrajectoryAnalysis
+                  cells={dataset.cells}
+                  clusters={dataset.clusters}
+                />
+              </TabsContent>
             </Tabs>
 
             {/* Differential Expression Table */}
@@ -369,8 +381,15 @@ const Index = () => {
 
       <footer className="border-t border-border bg-card py-4">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          Single-Cell RNA-seq Data Portal • Powered by{" "}
-          <span className="font-semibold text-primary">AccelBio</span>
+          Single-cell explorer • Powered by{" "}
+          <a 
+            href="https://accelbio.pt/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline"
+          >
+            AccelBio
+          </a>
         </div>
       </footer>
     </div>
