@@ -48,7 +48,7 @@ const Index = () => {
     opacity: 0.8,
     cellFilter: defaultCellFilter,
     expressionScale: 1.0,
-    usePercentileClipping: false,
+    usePercentileClipping: true,
     percentileLow: 5,
     percentileHigh: 95,
     showAveragedExpression: true,
