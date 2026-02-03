@@ -36,6 +36,51 @@ export function getMultiGeneExpression(
 }
 
 /**
+ * Get averaged expression across multiple genes.
+ */
+export function getAveragedExpression(
+  dataset: SingleCellDataset,
+  genes: string[]
+): Map<string, number> {
+  if (genes.length === 0) return new Map();
+  
+  const geneMaps = genes.map(gene => getExpressionData(dataset, gene));
+  const cellIds = new Set<string>();
+  
+  // Collect all cell IDs
+  geneMaps.forEach(map => map.forEach((_, cellId) => cellIds.add(cellId)));
+  
+  const result = new Map<string, number>();
+  cellIds.forEach(cellId => {
+    let sum = 0;
+    let count = 0;
+    geneMaps.forEach(map => {
+      const val = map.get(cellId);
+      if (val !== undefined) {
+        sum += val;
+        count++;
+      }
+    });
+    result.set(cellId, count > 0 ? sum / count : 0);
+  });
+  
+  return result;
+}
+
+/**
+ * Calculate percentile value from sorted array.
+ */
+export function calculatePercentile(values: number[], percentile: number): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = (percentile / 100) * (sorted.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower];
+  return sorted[lower] + (index - lower) * (sorted[upper] - sorted[lower]);
+}
+
+/**
  * Get unique values for a metadata annotation.
  */
 export function getAnnotationValues(

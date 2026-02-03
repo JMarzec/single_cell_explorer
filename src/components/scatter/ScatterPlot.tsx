@@ -20,6 +20,9 @@ interface ScatterPlotProps {
   showLabels: boolean;
   opacity: number;
   expressionScale?: number;
+  usePercentileClipping?: boolean;
+  percentileLow?: number;
+  percentileHigh?: number;
   clusterNames: string[];
   cellFilter?: CellFilterState;
   annotationData?: AnnotationData;
@@ -126,6 +129,9 @@ export function ScatterPlot({
   showLabels,
   opacity,
   expressionScale = 1,
+  usePercentileClipping = false,
+  percentileLow = 5,
+  percentileHigh = 95,
   clusterNames,
   cellFilter,
   annotationData,
@@ -190,18 +196,32 @@ export function ScatterPlot({
     };
   }, [cells]);
 
-  // Expression bounds
+  // Expression bounds - support percentile clipping
   const expressionBounds = useMemo(() => {
     if (!expressionData || expressionData.size === 0) return { min: 0, max: 1 };
     
+    const values = Array.from(expressionData.values());
+    
+    if (usePercentileClipping && values.length > 10) {
+      // Sort values and compute percentiles
+      const sorted = [...values].sort((a, b) => a - b);
+      const lowIdx = Math.floor((percentileLow / 100) * (sorted.length - 1));
+      const highIdx = Math.ceil((percentileHigh / 100) * (sorted.length - 1));
+      return { 
+        min: sorted[lowIdx], 
+        max: sorted[highIdx] 
+      };
+    }
+    
+    // Standard min/max
     let min = Infinity, max = -Infinity;
-    expressionData.forEach(value => {
+    values.forEach(value => {
       if (value < min) min = value;
       if (value > max) max = value;
     });
     
     return { min, max };
-  }, [expressionData]);
+  }, [expressionData, usePercentileClipping, percentileLow, percentileHigh]);
 
   // Cluster centers for labels (use filtered cells)
   const clusterCenters = useMemo(() => {

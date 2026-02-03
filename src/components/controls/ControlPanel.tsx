@@ -31,13 +31,28 @@ export function ControlPanel({
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Multi-Gene Selection (Dot Plot)</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-3">Multi-Gene Selection</h3>
         <MultiGeneSearch
           genes={genes}
           selectedGenes={settings.selectedGenes}
           onGenesSelect={(selectedGenes) => onSettingsChange({ selectedGenes })}
           maxGenes={20}
         />
+        {settings.selectedGenes.length > 0 && (
+          <div className="flex items-center justify-between mt-3">
+            <div>
+              <Label htmlFor="show-averaged" className="text-sm">
+                Show Averaged Expression
+              </Label>
+              <p className="text-xs text-muted-foreground">Display on scatter plot</p>
+            </div>
+            <Switch
+              id="show-averaged"
+              checked={settings.showAveragedExpression}
+              onCheckedChange={(checked) => onSettingsChange({ showAveragedExpression: checked })}
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -85,19 +100,52 @@ export function ControlPanel({
             max={3}
             step={0.1}
             onValueChange={([value]) => onSettingsChange({ expressionScale: value })}
-            disabled={!settings.selectedGene}
+            disabled={!settings.selectedGene && settings.selectedGenes.length === 0}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Low</span>
             <span className="font-mono">{settings.expressionScale.toFixed(1)}x</span>
             <span>High</span>
           </div>
-          <p className="text-xs text-muted-foreground italic">
-            {settings.selectedGene 
-              ? "Increase to enhance high expression visibility" 
-              : "Select a gene to adjust expression scaling"}
-          </p>
         </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="percentile-clipping" className="text-sm">
+              Percentile Clipping
+            </Label>
+            <p className="text-xs text-muted-foreground">Clip outliers for better contrast</p>
+          </div>
+          <Switch
+            id="percentile-clipping"
+            checked={settings.usePercentileClipping}
+            onCheckedChange={(checked) => onSettingsChange({ usePercentileClipping: checked })}
+            disabled={!settings.selectedGene && settings.selectedGenes.length === 0}
+          />
+        </div>
+
+        {settings.usePercentileClipping && (
+          <div className="space-y-2 pl-2 border-l-2 border-primary/20">
+            <Label className="text-xs text-muted-foreground">
+              Percentile Range ({settings.percentileLow}% - {settings.percentileHigh}%)
+            </Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs w-8">{settings.percentileLow}%</span>
+              <Slider
+                value={[settings.percentileLow, settings.percentileHigh]}
+                min={0}
+                max={100}
+                step={1}
+                onValueChange={([low, high]) => {
+                  if (low < high) {
+                    onSettingsChange({ percentileLow: low, percentileHigh: high });
+                  }
+                }}
+              />
+              <span className="text-xs w-8">{settings.percentileHigh}%</span>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <Label htmlFor="show-clusters" className="text-sm">

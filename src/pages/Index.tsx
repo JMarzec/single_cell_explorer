@@ -11,7 +11,7 @@ import { PathwayEnrichment } from "@/components/analysis/PathwayEnrichment";
 import { TrajectoryAnalysis } from "@/components/analysis/TrajectoryAnalysis";
 import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset } from "@/data/demoData";
-import { getExpressionData, getMultiGeneExpression, getAnnotationValues, getAnnotationColorMap } from "@/lib/expressionUtils";
+import { getExpressionData, getMultiGeneExpression, getAveragedExpression, getAnnotationValues, getAnnotationColorMap, calculatePercentile } from "@/lib/expressionUtils";
 import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,10 @@ const Index = () => {
     opacity: 0.8,
     cellFilter: defaultCellFilter,
     expressionScale: 1.0,
+    usePercentileClipping: false,
+    percentileLow: 5,
+    percentileHigh: 95,
+    showAveragedExpression: true,
   });
 
   const handleSettingsChange = useCallback(
@@ -57,11 +61,27 @@ const Index = () => {
     []
   );
 
-  // Get expression data for selected gene
+  // Get expression data for selected gene or averaged expression for multiple genes
   const expressionData = useMemo(() => {
-    if (!settings.selectedGene) return undefined;
-    return getExpressionData(dataset, settings.selectedGene);
-  }, [settings.selectedGene, dataset]);
+    // If single gene selected, use it
+    if (settings.selectedGene) {
+      return getExpressionData(dataset, settings.selectedGene);
+    }
+    // If multiple genes selected and averaging is enabled, compute average
+    if (settings.showAveragedExpression && settings.selectedGenes && settings.selectedGenes.length > 0) {
+      return getAveragedExpression(dataset, settings.selectedGenes);
+    }
+    return undefined;
+  }, [settings.selectedGene, settings.selectedGenes, settings.showAveragedExpression, dataset]);
+
+  // Effective gene label for display
+  const effectiveGeneLabel = useMemo(() => {
+    if (settings.selectedGene) return settings.selectedGene;
+    if (settings.showAveragedExpression && settings.selectedGenes && settings.selectedGenes.length > 0) {
+      return `Avg(${settings.selectedGenes.slice(0, 3).join(', ')}${settings.selectedGenes.length > 3 ? '...' : ''})`;
+    }
+    return null;
+  }, [settings.selectedGene, settings.selectedGenes, settings.showAveragedExpression]);
 
   // Get expression data for all selected genes (for dot plot)
   const multiGeneExpressionData = useMemo(() => {
@@ -219,8 +239,8 @@ const Index = () => {
             <div className="p-3 bg-card border border-border rounded-lg">
               <h3 className="font-semibold text-foreground">
                 Gene Expression
-                {settings.selectedGene && (
-                  <span className="ml-2 text-primary font-mono text-sm">({settings.selectedGene})</span>
+                {effectiveGeneLabel && (
+                  <span className="ml-2 text-primary font-mono text-sm">({effectiveGeneLabel})</span>
                 )}
               </h3>
             </div>
@@ -229,12 +249,15 @@ const Index = () => {
               <ScatterPlot
                 cells={dataset.cells}
                 expressionData={expressionData}
-                selectedGene={settings.selectedGene}
+                selectedGene={effectiveGeneLabel}
                 pointSize={settings.pointSize}
-                showClusters={!settings.selectedGene}
+                showClusters={!effectiveGeneLabel}
                 showLabels={settings.showLabels}
                 opacity={settings.opacity}
                 expressionScale={settings.expressionScale}
+                usePercentileClipping={settings.usePercentileClipping}
+                percentileLow={settings.percentileLow}
+                percentileHigh={settings.percentileHigh}
                 clusterNames={clusterNames}
                 cellFilter={settings.cellFilter}
                 onCellsSelected={handleCellsSelected}
@@ -242,7 +265,7 @@ const Index = () => {
             </div>
             
             {/* Expression Color Legend */}
-            {settings.selectedGene && (
+            {effectiveGeneLabel && (
               <div className="bg-card border border-border rounded-lg p-3">
                 <h4 className="text-sm font-medium text-foreground mb-2">Expression Level</h4>
                 <div className="flex items-center gap-2">
@@ -255,6 +278,11 @@ const Index = () => {
                   />
                   <span className="text-xs text-muted-foreground">High</span>
                 </div>
+                {settings.usePercentileClipping && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Clipped to {settings.percentileLow}th - {settings.percentileHigh}th percentile
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -281,10 +309,10 @@ const Index = () => {
           <div className="lg:col-span-3 space-y-6">
             <Tabs defaultValue="violin" className="w-full">
               <TabsList>
-                <TabsTrigger value="violin" disabled={!settings.selectedGene}>
+                <TabsTrigger value="violin" disabled={!effectiveGeneLabel}>
                   Violin Plot
                 </TabsTrigger>
-                <TabsTrigger value="feature" disabled={!settings.selectedGene}>
+                <TabsTrigger value="feature" disabled={!effectiveGeneLabel}>
                   Feature Plot
                 </TabsTrigger>
                 <TabsTrigger value="dotplot">
@@ -298,10 +326,10 @@ const Index = () => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="violin">
-                {settings.selectedGene && expressionData ? (
+                {effectiveGeneLabel && expressionData ? (
                   <ViolinPlot 
                     cells={dataset.cells} 
-                    gene={settings.selectedGene} 
+                    gene={effectiveGeneLabel} 
                     clusters={dataset.clusters}
                     expressionData={expressionData}
                   />
@@ -312,10 +340,10 @@ const Index = () => {
                 )}
               </TabsContent>
               <TabsContent value="feature">
-                {settings.selectedGene && expressionData ? (
+                {effectiveGeneLabel && expressionData ? (
                   <FeaturePlot 
                     cells={dataset.cells} 
-                    gene={settings.selectedGene} 
+                    gene={effectiveGeneLabel} 
                     clusters={dataset.clusters}
                     expressionData={expressionData}
                   />
