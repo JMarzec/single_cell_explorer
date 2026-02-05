@@ -4,7 +4,9 @@ import { MultiGeneSearch } from "./MultiGeneSearch";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ClusterInfo, VisualizationSettings } from "@/types/singleCell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClusterInfo, VisualizationSettings, ColorPalette } from "@/types/singleCell";
+import { PALETTE_LABELS, getPaletteGradientCSS } from "@/lib/colorPalettes";
 
 interface ControlPanelProps {
   genes: string[];
@@ -88,6 +90,31 @@ export function ControlPanel({
             <span className="font-mono">{Math.round(settings.opacity * 100)}%</span>
             <span>100%</span>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Color Palette</Label>
+          <Select
+            value={settings.colorPalette}
+            onValueChange={(value) => onSettingsChange({ colorPalette: value as ColorPalette })}
+          >
+            <SelectTrigger className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PALETTE_LABELS) as ColorPalette[]).map((key) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-16 h-3 rounded-sm border border-border"
+                      style={{ background: getPaletteGradientCSS(key) }}
+                    />
+                    <span>{PALETTE_LABELS[key]}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">

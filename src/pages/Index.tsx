@@ -12,6 +12,7 @@ import { TrajectoryAnalysis } from "@/components/analysis/TrajectoryAnalysis";
 import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset } from "@/data/demoData";
 import { getExpressionData, getMultiGeneExpression, getAveragedExpression, getAnnotationValues, getAnnotationColorMap, calculatePercentile } from "@/lib/expressionUtils";
+import { getPaletteGradientCSS } from "@/lib/colorPalettes";
 import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -258,6 +259,7 @@ const Index = () => {
                 usePercentileClipping={settings.usePercentileClipping}
                 percentileLow={settings.percentileLow}
                 percentileHigh={settings.percentileHigh}
+                colorPalette={settings.colorPalette}
                 clusterNames={clusterNames}
                 cellFilter={settings.cellFilter}
                 onCellsSelected={handleCellsSelected}
@@ -273,7 +275,7 @@ const Index = () => {
                   <div 
                     className="flex-1 h-3 rounded"
                     style={{
-                      background: 'linear-gradient(to right, rgb(180, 180, 180), rgb(255, 255, 255) 50%, rgb(255, 75, 55))'
+                      background: getPaletteGradientCSS(settings.colorPalette)
                     }}
                   />
                   <span className="text-xs text-muted-foreground">High</span>

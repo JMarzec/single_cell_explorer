@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { Cell, CellFilterState } from "@/types/singleCell";
+import { Cell, CellFilterState, ColorPalette } from "@/types/singleCell";
 import { getClusterColorRGBA } from "@/data/demoData";
+import { expressionToColor } from "@/lib/colorPalettes";
 import { CellTooltip } from "./CellTooltip";
 import { ExportControls } from "./ExportControls";
 import { SelectionTools, SelectionMode } from "./SelectionTools";
@@ -23,6 +24,7 @@ interface ScatterPlotProps {
   usePercentileClipping?: boolean;
   percentileLow?: number;
   percentileHigh?: number;
+  colorPalette?: ColorPalette;
   clusterNames: string[];
   cellFilter?: CellFilterState;
   annotationData?: AnnotationData;
@@ -71,29 +73,7 @@ function parseColorToRGBA(color: string, alpha: number = 1): [number, number, nu
   return [100, 140, 200, Math.floor(alpha * 255)];
 }
 
-// Color scale for expression (blue to red through white)
-// scale parameter adjusts the curve: >1 enhances high expression, <1 flattens it
-function expressionToColor(value: number, min: number, max: number, scale: number = 1): [number, number, number, number] {
-  let normalized = max === min ? 0.5 : (value - min) / (max - min);
-  
-  // Apply power scaling: scale > 1 pushes colors toward high expression (more red)
-  // scale < 1 pushes toward low expression (more gray)
-  normalized = Math.pow(normalized, 1 / scale);
-  
-  if (normalized < 0.5) {
-    // Low expression: gray to white
-    const t = normalized * 2;
-    const gray = Math.round(180 + t * 75);
-    return [gray, gray, gray, 255];
-  } else {
-    // High expression: white to red
-    const t = (normalized - 0.5) * 2;
-    const r = 255;
-    const g = Math.round(255 - t * 180);
-    const b = Math.round(255 - t * 200);
-    return [r, g, b, 255];
-  }
-}
+// expressionToColor is now imported from @/lib/colorPalettes
 
 // Check if point is inside polygon (ray casting)
 function pointInPolygon(x: number, y: number, polygon: { x: number; y: number }[]): boolean {
@@ -132,6 +112,7 @@ export function ScatterPlot({
   usePercentileClipping = false,
   percentileLow = 5,
   percentileHigh = 95,
+  colorPalette = "grrd",
   clusterNames,
   cellFilter,
   annotationData,
@@ -339,7 +320,7 @@ export function ScatterPlot({
       
       if (selectedGene && expressionData) {
         const expr = expressionData.get(cell.id) ?? 0;
-        const baseColor = expressionToColor(expr, expressionBounds.min, expressionBounds.max, expressionScale);
+        const baseColor = expressionToColor(expr, expressionBounds.min, expressionBounds.max, expressionScale, colorPalette);
         color = [baseColor[0], baseColor[1], baseColor[2], Math.floor(opacity * 255)];
       } else if (annotationData) {
         // Use annotation-based coloring
@@ -439,7 +420,7 @@ export function ScatterPlot({
     ctx.fillText("tSNE2", 0, 0);
     ctx.restore();
     
-  }, [filteredCells, expressionData, selectedGene, pointSize, showClusters, showLabels, opacity, expressionScale, dimensions, bounds, expressionBounds, clusterCenters, transform, dataToCanvas, selectedCells, isSelecting, selectionMode, lassoPoints, rectSelection]);
+  }, [filteredCells, expressionData, selectedGene, pointSize, showClusters, showLabels, opacity, expressionScale, colorPalette, dimensions, bounds, expressionBounds, clusterCenters, transform, dataToCanvas, selectedCells, isSelecting, selectionMode, lassoPoints, rectSelection]);
 
   // Handle resize
   useEffect(() => {
