@@ -266,27 +266,6 @@ const Index = () => {
               />
             </div>
             
-            {/* Expression Color Legend */}
-            {effectiveGeneLabel && (
-              <div className="bg-card border border-border rounded-lg p-3">
-                <h4 className="text-sm font-medium text-foreground mb-2">Expression Level</h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Low</span>
-                  <div 
-                    className="flex-1 h-3 rounded"
-                    style={{
-                      background: getPaletteGradientCSS(settings.colorPalette)
-                    }}
-                  />
-                  <span className="text-xs text-muted-foreground">High</span>
-                </div>
-                {settings.usePercentileClipping && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Clipped to {settings.percentileLow}th - {settings.percentileHigh}th percentile
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
