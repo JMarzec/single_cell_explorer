@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { ScatterPlot } from "@/components/scatter/ScatterPlot";
 import { ControlPanel } from "@/components/controls/ControlPanel";
 import { CellFilter } from "@/components/controls/CellFilter";
+import { ClusterAnnotationTool } from "@/components/controls/ClusterAnnotationTool";
 import { DifferentialExpressionTable } from "@/components/table/DifferentialExpressionTable";
 import { ViolinPlot } from "@/components/plots/ViolinPlot";
 import { FeaturePlot } from "@/components/plots/FeaturePlot";
@@ -13,7 +14,7 @@ import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset } from "@/data/demoData";
 import { getExpressionData, getMultiGeneExpression, getAveragedExpression, getAnnotationValues, getAnnotationColorMap, calculatePercentile } from "@/lib/expressionUtils";
 import { getPaletteGradientCSS } from "@/lib/colorPalettes";
-import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell } from "@/types/singleCell";
+import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell, ClusterInfo } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +32,7 @@ const defaultCellFilter: CellFilterType = {
 
 const Index = () => {
   const [dataset, setDataset] = useState<SingleCellDataset>(defaultDataset);
+  const originalDatasetRef = useRef<SingleCellDataset>(defaultDataset);
   
   // Selected cells from lasso/rectangle selection
   const [selectedCells, setSelectedCells] = useState<Cell[]>([]);
@@ -93,6 +95,7 @@ const Index = () => {
 
   const handleDatasetLoad = useCallback((newDataset: SingleCellDataset) => {
     setDataset(newDataset);
+    originalDatasetRef.current = newDataset;
     setSettings(prev => ({ ...prev, selectedGene: null, selectedGenes: [], cellFilter: defaultCellFilter }));
     // Set default annotation if cell_type exists
     const annotations = newDataset.annotationOptions || [];
@@ -101,6 +104,64 @@ const Index = () => {
     } else if (annotations.length > 0) {
       setSelectedAnnotation(annotations[0]);
     }
+  }, []);
+
+  // Cluster annotation handlers
+  const handleRenameCluster = useCallback((clusterId: number, newName: string) => {
+    setDataset(prev => ({
+      ...prev,
+      clusters: prev.clusters.map(c =>
+        c.id === clusterId ? { ...c, name: newName } : c
+      ),
+      cells: prev.cells.map(cell =>
+        cell.cluster === clusterId
+          ? { ...cell, metadata: { ...cell.metadata, cell_type: newName } }
+          : cell
+      ),
+    }));
+  }, []);
+
+  const handleMergeClusters = useCallback((sourceIds: number[], targetId: number, mergedName: string) => {
+    setDataset(prev => {
+      // Reassign cells from source clusters to target
+      const newCells = prev.cells.map(cell =>
+        sourceIds.includes(cell.cluster)
+          ? { ...cell, cluster: targetId, metadata: { ...cell.metadata, cell_type: mergedName } }
+          : cell
+      );
+
+      // Update target cluster name and remove source clusters
+      const targetCluster = prev.clusters.find(c => c.id === targetId);
+      const mergedCellCount = newCells.filter(c => c.cluster === targetId).length;
+      
+      const newClusters = prev.clusters
+        .filter(c => !sourceIds.includes(c.id))
+        .map(c =>
+          c.id === targetId
+            ? { ...c, name: mergedName, cellCount: mergedCellCount }
+            : c
+        );
+
+      return {
+        ...prev,
+        cells: newCells,
+        clusters: newClusters,
+        metadata: { ...prev.metadata, clusterCount: newClusters.length },
+      };
+    });
+  }, []);
+
+  const handleChangeClusterColor = useCallback((clusterId: number, newColor: string) => {
+    setDataset(prev => ({
+      ...prev,
+      clusters: prev.clusters.map(c =>
+        c.id === clusterId ? { ...c, color: newColor } : c
+      ),
+    }));
+  }, []);
+
+  const handleResetClusters = useCallback(() => {
+    setDataset(originalDatasetRef.current);
   }, []);
 
   const handleGeneClick = useCallback((gene: string) => {
@@ -283,6 +344,13 @@ const Index = () => {
               clusters={dataset.clusters}
               filter={settings.cellFilter}
               onFilterChange={(filter) => handleSettingsChange({ cellFilter: filter })}
+            />
+            <ClusterAnnotationTool
+              clusters={dataset.clusters}
+              onRenameCluster={handleRenameCluster}
+              onMergeClusters={handleMergeClusters}
+              onChangeClusterColor={handleChangeClusterColor}
+              onResetClusters={handleResetClusters}
             />
           </div>
 
