@@ -10,11 +10,13 @@ import { FeaturePlot } from "@/components/plots/FeaturePlot";
 import { DotPlot } from "@/components/plots/DotPlot";
 import { PathwayEnrichment } from "@/components/analysis/PathwayEnrichment";
 import { TrajectoryAnalysis } from "@/components/analysis/TrajectoryAnalysis";
+import { PseudotimeHeatmap } from "@/components/analysis/PseudotimeHeatmap";
+import { calculatePseudotime } from "@/components/analysis/TrajectoryAnalysis";
 import { DatasetUploader } from "@/components/upload/DatasetUploader";
 import { generateDemoDataset } from "@/data/demoData";
 import { getExpressionData, getMultiGeneExpression, getAveragedExpression, getAnnotationValues, getAnnotationColorMap, calculatePercentile } from "@/lib/expressionUtils";
 import { getPaletteGradientCSS } from "@/lib/colorPalettes";
-import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell, ClusterInfo } from "@/types/singleCell";
+import { VisualizationSettings, SingleCellDataset, CellFilterState as CellFilterType, Cell, ClusterInfo, ColorPalette } from "@/types/singleCell";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +26,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // Generate demo dataset
 const defaultDataset = generateDemoDataset(15000);
+
+// Wrapper that computes pseudotime for the heatmap using the first cluster as root
+const PseudotimeHeatmapWrapper: React.FC<{
+  cells: Cell[];
+  clusters: ClusterInfo[];
+  genes: string[];
+  dataset: SingleCellDataset;
+  colorPalette: ColorPalette;
+}> = ({ cells, clusters, genes, dataset, colorPalette }) => {
+  const pseudotimeMap = useMemo(() => calculatePseudotime(cells, 0), [cells]);
+  const expressionDataMap = useMemo(
+    () => getMultiGeneExpression(dataset, genes),
+    [dataset, genes]
+  );
+
+  return (
+    <PseudotimeHeatmap
+      cells={cells}
+      clusters={clusters}
+      genes={genes}
+      expressionDataMap={expressionDataMap}
+      pseudotimeMap={pseudotimeMap}
+      colorPalette={colorPalette}
+    />
+  );
+};
 
 const defaultCellFilter: CellFilterType = {
   selectedSamples: [],
@@ -436,10 +464,19 @@ const Index = () => {
                 />
               </TabsContent>
               <TabsContent value="trajectory">
-                <TrajectoryAnalysis
-                  cells={dataset.cells}
-                  clusters={dataset.clusters}
-                />
+                <div className="space-y-6">
+                  <TrajectoryAnalysis
+                    cells={dataset.cells}
+                    clusters={dataset.clusters}
+                  />
+                  <PseudotimeHeatmapWrapper
+                    cells={dataset.cells}
+                    clusters={dataset.clusters}
+                    genes={settings.selectedGenes || []}
+                    dataset={dataset}
+                    colorPalette={settings.colorPalette}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
 

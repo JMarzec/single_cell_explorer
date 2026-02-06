@@ -27,7 +27,7 @@ interface TrajectoryEdge {
 }
 
 // Calculate pseudotime based on distance from root
-function calculatePseudotime(cells: Cell[], rootCluster: number): Map<string, number> {
+export function calculatePseudotime(cells: Cell[], rootCluster: number): Map<string, number> {
   const pseudotimeMap = new Map<string, number>();
   
   // Find cluster centers
