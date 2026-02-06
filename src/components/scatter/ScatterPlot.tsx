@@ -602,16 +602,6 @@ export function ScatterPlot({
       
       {/* Export button */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        {selectedGene && (
-          <div className="bg-card/95 border border-border rounded-lg p-3 shadow-sm mr-2">
-            <div className="text-xs font-medium text-foreground mb-2">{selectedGene}</div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Low</span>
-              <div className="w-24 h-3 rounded gradient-expression" />
-              <span className="text-xs text-muted-foreground">High</span>
-            </div>
-          </div>
-        )}
         <ExportControls canvasRef={canvasRef} filename={`scatter-${selectedGene || 'clusters'}`} />
       </div>
       
