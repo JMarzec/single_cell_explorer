@@ -73,7 +73,7 @@ const Index = () => {
     pointSize: 2,
     showClusters: true,
     showLabels: true,
-    colorPalette: "viridis",
+    colorPalette: "grrd",
     selectedGene: null,
     selectedGenes: [],
     opacity: 0.8,
