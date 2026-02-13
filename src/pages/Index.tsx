@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { ScatterPlot } from "@/components/scatter/ScatterPlot";
 import { ControlPanel } from "@/components/controls/ControlPanel";
 import { CellFilter } from "@/components/controls/CellFilter";
+import { DisplayOptions } from "@/components/controls/DisplayOptions";
 import { ClusterAnnotationTool } from "@/components/controls/ClusterAnnotationTool";
 import { DifferentialExpressionTable } from "@/components/table/DifferentialExpressionTable";
 import { ViolinPlot } from "@/components/plots/ViolinPlot";
@@ -377,15 +378,24 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Filters & Display Options */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CellFilter
+            cells={dataset.cells}
+            clusters={dataset.clusters}
+            filter={settings.cellFilter}
+            onFilterChange={(filter) => handleSettingsChange({ cellFilter: filter })}
+          />
+          <DisplayOptions
+            clusters={dataset.clusters}
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
+          />
+        </div>
+
         {/* Control Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1 space-y-4">
-            <CellFilter
-              cells={dataset.cells}
-              clusters={dataset.clusters}
-              filter={settings.cellFilter}
-              onFilterChange={(filter) => handleSettingsChange({ cellFilter: filter })}
-            />
             <ControlPanel
               genes={dataset.genes}
               clusters={dataset.clusters}
