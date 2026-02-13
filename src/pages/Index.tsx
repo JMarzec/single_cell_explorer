@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { ScatterPlot } from "@/components/scatter/ScatterPlot";
-import { ControlPanel } from "@/components/controls/ControlPanel";
 import { CellFilter } from "@/components/controls/CellFilter";
 import { DisplayOptions } from "@/components/controls/DisplayOptions";
 import { ClusterAnnotationTool } from "@/components/controls/ClusterAnnotationTool";
@@ -385,6 +384,9 @@ const Index = () => {
             clusters={dataset.clusters}
             filter={settings.cellFilter}
             onFilterChange={(filter) => handleSettingsChange({ cellFilter: filter })}
+            genes={dataset.genes}
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
           />
           <DisplayOptions
             clusters={dataset.clusters}
@@ -396,12 +398,6 @@ const Index = () => {
         {/* Control Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1 space-y-4">
-            <ControlPanel
-              genes={dataset.genes}
-              clusters={dataset.clusters}
-              settings={settings}
-              onSettingsChange={handleSettingsChange}
-            />
             <ClusterAnnotationTool
               clusters={dataset.clusters}
               onRenameCluster={handleRenameCluster}
