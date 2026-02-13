@@ -380,17 +380,17 @@ const Index = () => {
         {/* Control Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1 space-y-4">
-            <ControlPanel
-              genes={dataset.genes}
-              clusters={dataset.clusters}
-              settings={settings}
-              onSettingsChange={handleSettingsChange}
-            />
             <CellFilter
               cells={dataset.cells}
               clusters={dataset.clusters}
               filter={settings.cellFilter}
               onFilterChange={(filter) => handleSettingsChange({ cellFilter: filter })}
+            />
+            <ControlPanel
+              genes={dataset.genes}
+              clusters={dataset.clusters}
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
             />
             <ClusterAnnotationTool
               clusters={dataset.clusters}
