@@ -420,12 +420,12 @@ const Index = () => {
                 <TabsTrigger value="dotplot">
                   Dot Plot
                 </TabsTrigger>
-                <TabsTrigger value="enrichment">
+                {/* <TabsTrigger value="enrichment">
                   Pathway Enrichment
                 </TabsTrigger>
                 <TabsTrigger value="trajectory">
                   Trajectory
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
               <TabsContent value="violin">
                 {effectiveGeneLabel && expressionData ? (
