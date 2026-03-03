@@ -621,10 +621,10 @@ export function ScatterPlot({
         </button>
         <button
           onClick={handleDoubleClick}
-          className="w-8 h-8 rounded bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors text-xs"
+          className="px-2 h-8 rounded bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors text-xs gap-1"
           title="Reset view"
         >
-          ⌂
+          ⌂ Reset
         </button>
       </div>
 
