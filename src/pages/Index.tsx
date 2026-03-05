@@ -260,6 +260,15 @@ const Index = () => {
     setSelectedCells(cells);
   }, []);
 
+  if (isLoadingRemote) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary" />
+        <p className="text-muted-foreground text-sm">Loading heart organoid dataset…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header metadata={dataset.metadata} />
