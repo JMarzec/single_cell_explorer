@@ -324,7 +324,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header metadata={dataset.metadata} />
+      <Header metadata={dataset.metadata} onStartTour={() => setTourOpen(true)} />
+      <ProductTour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 
       <main className="flex-1 container mx-auto px-4 py-6">
         {/* Controls row */}
