@@ -25,6 +25,58 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProductTour, TourStep } from "@/components/tour/ProductTour";
+
+const tourSteps: TourStep[] = [
+  {
+    target: "[data-tour='header']",
+    title: "Welcome to Single-Cell Explorer",
+    description: "This dashboard lets you explore single-cell datasets interactively. The header shows your dataset summary — total cells, genes, and clusters at a glance.",
+    position: "bottom",
+  },
+  {
+    target: "[data-tour='upload']",
+    title: "Upload Your Dataset",
+    description: "Click here to load your own single-cell dataset (JSON format) or use the pre-loaded heart organoid data.",
+    position: "bottom",
+  },
+  {
+    target: "[data-tour='metadata-plot']",
+    title: "Metadata Scatter Plot",
+    description: "Cells are projected into 2D space (t-SNE / UMAP). Each colour represents a different cell type or cluster. Use the dropdown above to switch annotations.",
+    position: "right",
+  },
+  {
+    target: "[data-tour='expression-plot']",
+    title: "Gene Expression Plot",
+    description: "When you search for a gene, this plot colours cells by expression level — from low (grey) to high (red). Hover over cells to see exact values.",
+    position: "left",
+  },
+  {
+    target: "[data-tour='gene-selection']",
+    title: "Gene Selection Panel",
+    description: "Search and select genes here. Pick a single gene to colour the expression plot, or select multiple genes for dot plots and violin comparisons.",
+    position: "top",
+  },
+  {
+    target: "[data-tour='display-options']",
+    title: "Display Options",
+    description: "Fine-tune your visualisation — adjust point size, opacity, colour palette, and toggle cluster labels. Use percentile clipping to handle outliers.",
+    position: "top",
+  },
+  {
+    target: "[data-tour='analysis-tabs']",
+    title: "Analysis Tabs",
+    description: "Explore deeper with violin plots, feature plots, and dot plots. Select genes first, then switch between tabs to see different views of expression data.",
+    position: "top",
+  },
+  {
+    target: "[data-tour='de-table']",
+    title: "Differential Expression Table",
+    description: "Browse marker genes ranked by statistical significance. Click any gene name to instantly colour the expression scatter plot. Sort and filter columns as needed.",
+    position: "top",
+  },
+];
 
 // Generate demo dataset as fallback
 const defaultDataset = generateDemoDataset(15000);
