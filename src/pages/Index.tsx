@@ -581,10 +581,12 @@ const Index = () => {
             </Tabs>
 
             {/* Differential Expression Table */}
-            <DifferentialExpressionTable
-              data={dataset.differentialExpression}
-              onGeneClick={handleGeneClick}
-            />
+            <div data-tour="de-table">
+              <DifferentialExpressionTable
+                data={dataset.differentialExpression}
+                onGeneClick={handleGeneClick}
+              />
+            </div>
           </div>
 
       </main>
