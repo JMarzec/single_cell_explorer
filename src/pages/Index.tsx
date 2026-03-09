@@ -492,11 +492,13 @@ const Index = () => {
               onResetClusters={handleResetClusters}
             />
           </div>
-          <DisplayOptions
-            clusters={dataset.clusters}
-            settings={settings}
-            onSettingsChange={handleSettingsChange}
-          />
+          <div data-tour="display-options">
+            <DisplayOptions
+              clusters={dataset.clusters}
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+            />
+          </div>
         </div>
 
         {/* Analysis Tabs */}
