@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Info, Search, MousePointer2, Palette, BarChart3, GitCompareArrows } from "lucide-react";
+import { Info, Search, MousePointer2, Palette, BarChart3, GitCompareArrows, Play } from "lucide-react";
 import { DatasetMetadata } from "@/types/singleCell";
 import accelBioLogo from "@/assets/AccelBio_logo.png";
 import {
@@ -12,6 +12,7 @@ import {
 
 interface HeaderProps {
   metadata: DatasetMetadata;
+  onStartTour?: () => void;
 }
 
 const guideItems = [
@@ -47,11 +48,11 @@ const guideItems = [
   },
 ];
 
-export function Header({ metadata }: HeaderProps) {
+export function Header({ metadata, onStartTour }: HeaderProps) {
   const [guideOpen, setGuideOpen] = useState(false);
 
   return (
-    <header className="border-b border-border bg-card">
+    <header className="border-b border-border bg-card" data-tour="header">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -92,6 +93,17 @@ export function Header({ metadata }: HeaderProps) {
                 <div className="text-xs text-muted-foreground">Clusters</div>
               </div>
             </div>
+
+            {onStartTour && (
+              <button
+                onClick={onStartTour}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+                title="Start guided tour"
+              >
+                <Play className="h-3.5 w-3.5" />
+                Tour
+              </button>
+            )}
 
             <button
               onClick={() => setGuideOpen(true)}
