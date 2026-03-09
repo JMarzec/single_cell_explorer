@@ -329,7 +329,7 @@ const Index = () => {
 
       <main className="flex-1 container mx-auto px-4 py-6">
         {/* Controls row */}
-        <div className="mb-4 flex flex-wrap items-center gap-4">
+        <div className="mb-4 flex flex-wrap items-center gap-4" data-tour="upload">
           <DatasetUploader 
             onDatasetLoad={handleDatasetLoad} 
             buttonVariant="outline"
