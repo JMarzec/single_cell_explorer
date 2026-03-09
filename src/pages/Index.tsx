@@ -502,7 +502,7 @@ const Index = () => {
         </div>
 
         {/* Analysis Tabs */}
-        <div className="space-y-6 mt-6">
+        <div className="space-y-6 mt-6" data-tour="analysis-tabs">
             <Tabs defaultValue="violin" className="w-full">
               <TabsList>
                 <TabsTrigger value="violin" disabled={!effectiveGeneLabel}>
