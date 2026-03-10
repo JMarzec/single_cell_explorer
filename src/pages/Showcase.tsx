@@ -74,6 +74,7 @@ const features: FeatureSection[] = [
   },
   {
     icon: Search,
+    id: "gene-search",
     title: "Gene Expression Search",
     description:
       "Type any gene name to instantly overlay its expression on the scatter plot. The colour gradient highlights where the gene is expressed across all clusters.",
@@ -89,6 +90,7 @@ const features: FeatureSection[] = [
   },
   {
     icon: BarChart3,
+    id: "plots",
     title: "Violin & Dot Plots",
     description:
       "Compare gene expression distributions across clusters with publication-ready violin plots, feature plots, and dot plots.",
@@ -103,6 +105,7 @@ const features: FeatureSection[] = [
   },
   {
     icon: GitCompareArrows,
+    id: "de",
     title: "Differential Expression",
     description:
       "Select a group of cells and instantly find their marker genes. Sort by log-fold change or adjusted p-value to identify the most significant differences.",
@@ -118,6 +121,7 @@ const features: FeatureSection[] = [
   },
   {
     icon: Palette,
+    id: "display",
     title: "Display Customisation",
     description:
       "Fine-tune the visualisation with adjustable point size, expression scale, percentile clipping, and toggle cluster labels or legend visibility.",
@@ -132,6 +136,7 @@ const features: FeatureSection[] = [
   },
   {
     icon: Layers,
+    id: "upload",
     title: "Upload Your Own Data",
     description:
       "Bring your own single-cell dataset in JSON format. The explorer instantly loads your data — no server required, everything runs in the browser.",
