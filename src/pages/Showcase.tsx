@@ -58,6 +58,7 @@ interface FeatureSection {
 const features: FeatureSection[] = [
   {
     icon: MousePointer2,
+    id: "scatter",
     title: "Interactive Scatter Plot",
     description:
       "Explore thousands of cells in a 2D t-SNE or UMAP embedding. Each point is a cell — hover for details, lasso-select subsets, and zoom with the scroll wheel.",

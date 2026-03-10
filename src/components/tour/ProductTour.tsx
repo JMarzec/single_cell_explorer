@@ -159,6 +159,20 @@ export function ProductTour({ steps, isOpen, onClose }: ProductTourProps) {
         onClick={onClose}
       />
 
+      {/* Spotlight background fill */}
+      {targetRect && (
+        <div
+          className="fixed rounded-lg bg-card pointer-events-none transition-all duration-300"
+          style={{
+            zIndex: 10000,
+            top: targetRect.top - window.scrollY - PADDING,
+            left: targetRect.left - window.scrollX - PADDING,
+            width: targetRect.width + PADDING * 2,
+            height: targetRect.height + PADDING * 2,
+          }}
+        />
+      )}
+
       {/* Spotlight border ring */}
       {targetRect && (
         <div

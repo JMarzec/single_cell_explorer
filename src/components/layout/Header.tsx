@@ -95,6 +95,15 @@ export function Header({ metadata, onStartTour }: HeaderProps) {
               </div>
             </div>
 
+            <Link
+              to="/showcase"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 text-accent-foreground text-sm font-medium transition-colors"
+              title="Feature showcase"
+            >
+              <Presentation className="h-3.5 w-3.5" />
+              Showcase
+            </Link>
+
             {onStartTour && (
               <button
                 onClick={onStartTour}
