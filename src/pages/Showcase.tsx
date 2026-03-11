@@ -282,16 +282,13 @@ export default function Showcase() {
                     Single-Cell Explorer
                   </span>
                 </div>
-                <div className="aspect-video bg-muted/30 flex items-center justify-center p-8">
-                  <div className="text-center space-y-3">
-                    <feat.icon className="h-16 w-16 text-primary/30 mx-auto" />
-                    <p className="text-sm text-muted-foreground">
-                      {feat.screenshotAlt}
-                    </p>
-                    <p className="text-xs text-muted-foreground/60">
-                      Replace with actual screenshot: {feat.imageUrl}
-                    </p>
-                  </div>
+                <div className="aspect-video bg-muted/30 overflow-hidden">
+                  <img
+                    src={feat.imageUrl}
+                    alt={feat.screenshotAlt}
+                    className="w-full h-full object-cover object-top"
+                    loading="lazy"
+                  />
                 </div>
               </div>
             </RevealSection>
