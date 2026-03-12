@@ -162,7 +162,7 @@ export function ProductTour({ steps, isOpen, onClose }: ProductTourProps) {
       {/* Spotlight background fill */}
       {targetRect && (
         <div
-          className="fixed rounded-lg bg-card pointer-events-none transition-all duration-300"
+          className="fixed rounded-lg bg-card/30 backdrop-blur-[1px] pointer-events-none transition-all duration-300"
           style={{
             zIndex: 10000,
             top: targetRect.top - window.scrollY - PADDING,
