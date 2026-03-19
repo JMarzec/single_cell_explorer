@@ -13,7 +13,7 @@ import { PathwayEnrichment } from "@/components/analysis/PathwayEnrichment";
 import { TrajectoryAnalysis } from "@/components/analysis/TrajectoryAnalysis";
 import { PseudotimeHeatmap } from "@/components/analysis/PseudotimeHeatmap";
 import { calculatePseudotime } from "@/components/analysis/TrajectoryAnalysis";
-import { DatasetUploader } from "@/components/upload/DatasetUploader";
+
 import { generateDemoDataset } from "@/data/demoData";
 import { fetchRemoteDataset } from "@/lib/datasetLoader";
 import { getExpressionData, getMultiGeneExpression, getAveragedExpression, getAnnotationValues, getAnnotationColorMap, calculatePercentile } from "@/lib/expressionUtils";
