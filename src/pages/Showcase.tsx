@@ -328,8 +328,7 @@ export default function Showcase() {
               Ready to explore?
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-              No installation, no sign-up. Load the demo dataset or upload your
-              own — start analysing in seconds.
+              No installation, no sign-up. Load the demo dataset and start analysing in seconds.
             </p>
             <Link
               to="/"

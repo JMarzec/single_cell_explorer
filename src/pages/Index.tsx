@@ -323,19 +323,6 @@ const Index = () => {
 
       <main className="flex-1 container mx-auto px-4 py-6">
         {/* Controls row */}
-        <div className="mb-4 flex flex-wrap items-center gap-4" data-tour="upload">
-          <DatasetUploader 
-            onDatasetLoad={handleDatasetLoad} 
-            buttonVariant="outline"
-          />
-          
-          <Button variant="ghost" size="sm" asChild>
-            <a href="/export_template.R" download className="gap-2">
-              <Download className="h-4 w-4" />
-              R Export Script
-            </a>
-          </Button>
-        </div>
 
         {/* Dual Plot Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
