@@ -134,22 +134,6 @@ const features: FeatureSection[] = [
     screenshotAlt: "Display options panel",
     imageUrl: "/showcase/display.png",
   },
-  {
-    icon: Layers,
-    id: "upload",
-    title: "Upload Your Own Data",
-    description:
-      "Bring your own single-cell dataset in JSON format. The explorer instantly loads your data — no server required, everything runs in the browser.",
-    details: [
-      "JSON format with embeddings & expression",
-      "Client-side processing — no data leaves your machine",
-      "Automatic cluster detection",
-      "Works with any t-SNE / UMAP output",
-    ],
-    screenshotAlt: "Dataset upload interface",
-    imageUrl: "/showcase/upload.png",
-    reverse: true,
-  },
 ];
 
 /* ------------------------------------------------------------------ */
