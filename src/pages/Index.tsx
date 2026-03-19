@@ -35,12 +35,6 @@ const tourSteps: TourStep[] = [
     position: "bottom",
   },
   {
-    target: "[data-tour='upload']",
-    title: "Upload Your Dataset",
-    description: "Click here to load your own single-cell dataset (JSON format) or use the pre-loaded heart organoid data.",
-    position: "bottom",
-  },
-  {
     target: "[data-tour='metadata-plot']",
     title: "Metadata Scatter Plot",
     description: "Cells are projected into 2D space (t-SNE / UMAP). Each colour represents a different cell type or cluster. Use the dropdown above to switch annotations.",
