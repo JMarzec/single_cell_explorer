@@ -204,7 +204,7 @@ export default function Showcase() {
         <div className="container mx-auto px-4 py-24 md:py-36 text-center relative">
           <RevealSection>
             <p className="text-sm font-medium tracking-widest uppercase text-primary mb-4">
-              Browser-Based Single-Cell Analysis
+              Product Showcase
             </p>
             <h1 className="text-4xl md:text-6xl font-bold leading-tight max-w-3xl mx-auto">
               Explore your single-cell data{" "}
@@ -239,8 +239,12 @@ export default function Showcase() {
             </div>
           </div>
 
-          <div className="mt-8 animate-bounce text-muted-foreground">
-            <ChevronDown className="h-6 w-6 mx-auto" />
+          {/* Scroll indicator */}
+          <div className="mt-10 flex flex-col items-center gap-2 text-muted-foreground">
+            <span className="text-xs font-medium uppercase tracking-widest">Scroll to explore features</span>
+            <div className="animate-bounce">
+              <ChevronDown className="h-6 w-6" />
+            </div>
           </div>
         </div>
       </section>
