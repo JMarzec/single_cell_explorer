@@ -142,6 +142,16 @@ export function DifferentialExpressionTable({
     [onGeneClick, clusterNameMap]
   );
 
+  const globalFilterFn = useMemo(() => {
+    return (row: any, _columnId: string, filterValue: string) => {
+      const search = filterValue.toLowerCase();
+      const gene = String(row.original.gene).toLowerCase();
+      const cluster = String(row.original.cluster).toLowerCase();
+      const cellType = (clusterNameMap.get(row.original.cluster) || "").toLowerCase();
+      return gene.includes(search) || cluster.includes(search) || cellType.includes(search);
+    };
+  }, [clusterNameMap]);
+
   const table = useReactTable({
     data,
     columns,
@@ -151,6 +161,7 @@ export function DifferentialExpressionTable({
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
