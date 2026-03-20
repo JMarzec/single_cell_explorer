@@ -9,13 +9,14 @@ import {
   createColumnHelper,
   SortingState,
 } from "@tanstack/react-table";
-import { DifferentialExpression } from "@/types/singleCell";
+import { DifferentialExpression, ClusterInfo } from "@/types/singleCell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ArrowUpDown, Search } from "lucide-react";
 
 interface DifferentialExpressionTableProps {
   data: DifferentialExpression[];
+  clusters?: ClusterInfo[];
   onGeneClick?: (gene: string) => void;
 }
 
@@ -23,12 +24,25 @@ const columnHelper = createColumnHelper<DifferentialExpression>();
 
 export function DifferentialExpressionTable({
   data,
+  clusters,
   onGeneClick,
 }: DifferentialExpressionTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "logFC", desc: true },
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
+
+  const clusterNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (clusters) {
+      clusters.forEach((c) => {
+        map.set(`Cl_${c.id}`, c.name);
+        map.set(String(c.id), c.name);
+        map.set(c.name, c.name);
+      });
+    }
+    return map;
+  }, [clusters]);
 
   const columns = useMemo(
     () => [
@@ -67,6 +81,24 @@ export function DifferentialExpressionTable({
           </span>
         ),
       }),
+      {
+        id: "cellType",
+        accessorFn: (row) => clusterNameMap.get(row.cluster) || "",
+        header: ({ column }) => (
+          <button
+            className="flex items-center gap-1 hover:text-primary transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Cell Type
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
+        ),
+        cell: (info) => (
+          <span className="text-xs text-muted-foreground">
+            {(info.getValue() as string) || "—"}
+          </span>
+        ),
+      },
       columnHelper.accessor("logFC", {
         header: ({ column }) => (
           <button
@@ -107,8 +139,18 @@ export function DifferentialExpressionTable({
         },
       }),
     ],
-    [onGeneClick]
+    [onGeneClick, clusterNameMap]
   );
+
+  const globalFilterFn = useMemo(() => {
+    return (row: any, _columnId: string, filterValue: string) => {
+      const search = filterValue.toLowerCase();
+      const gene = String(row.original.gene).toLowerCase();
+      const cluster = String(row.original.cluster).toLowerCase();
+      const cellType = (clusterNameMap.get(row.original.cluster) || "").toLowerCase();
+      return gene.includes(search) || cluster.includes(search) || cellType.includes(search);
+    };
+  }, [clusterNameMap]);
 
   const table = useReactTable({
     data,
@@ -119,6 +161,7 @@ export function DifferentialExpressionTable({
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -140,7 +183,7 @@ export function DifferentialExpressionTable({
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search genes..."
+              placeholder="Search genes, clusters, cell types..."
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="pl-10 h-8 text-sm"
