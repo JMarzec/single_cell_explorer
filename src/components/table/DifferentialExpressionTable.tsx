@@ -134,7 +134,7 @@ export function DifferentialExpressionTable({
         },
       }),
     ],
-    [onGeneClick]
+    [onGeneClick, clusterNameMap]
   );
 
   const table = useReactTable({
