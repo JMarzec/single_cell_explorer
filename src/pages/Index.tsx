@@ -134,7 +134,7 @@ const Index = () => {
   const [settings, setSettings] = useState<VisualizationSettings>({
     pointSize: 2,
     showClusters: true,
-    showLabels: true,
+    showLabels: false,
     colorPalette: "grrd",
     selectedGene: null,
     selectedGenes: [],
