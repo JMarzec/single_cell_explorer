@@ -136,16 +136,6 @@ export function DisplayOptions({
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <Label htmlFor="show-clusters" className="text-sm">
-            Show Clusters
-          </Label>
-          <Switch
-            id="show-clusters"
-            checked={settings.showClusters}
-            onCheckedChange={(checked) => onSettingsChange({ showClusters: checked })}
-          />
-        </div>
 
         <div className="flex items-center justify-between">
           <Label htmlFor="show-labels" className="text-sm">
