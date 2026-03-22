@@ -159,6 +159,7 @@ export function generateDemoDataset(cellCount: number = 15000): SingleCellDatase
       cellCount: cells.length,
       geneCount: ALL_GENES.length,
       clusterCount: clusters.length,
+      cellTypeCount: clusters.length,
       organism: "Homo sapiens",
       tissue: "Heart",
       source: "Demo data",

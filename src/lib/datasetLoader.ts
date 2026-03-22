@@ -56,6 +56,7 @@ export function normalizeDataset(data: unknown): SingleCellDataset {
     cellCount: cells.length,
     geneCount: ((obj.genes as string[]) || []).length,
     clusterCount: clusters.length,
+    cellTypeCount: new Set(cells.map((c) => c.metadata?.cell_type).filter(Boolean)).size || clusters.length,
     organism: rawMeta.organism ? String(rawMeta.organism) : undefined,
     tissue: rawMeta.tissue ? String(rawMeta.tissue) : undefined,
     source: rawMeta.source ? String(rawMeta.source) : undefined,

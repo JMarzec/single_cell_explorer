@@ -183,7 +183,7 @@ function DatasetStats() {
         <div className="container mx-auto px-4 py-12 grid grid-cols-3 gap-8">
           <StatCounter value="..." label="Cells" />
           <StatCounter value="..." label="Genes available" />
-          <StatCounter value="..." label="Cell clusters" />
+          <StatCounter value="..." label="Cell types" />
         </div>
       </section>
     );
