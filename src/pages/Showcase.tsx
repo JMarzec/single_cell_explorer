@@ -169,7 +169,7 @@ function DatasetStats() {
         setStats({
           cells: ds.metadata.cellCount.toLocaleString(),
           genes: ds.metadata.geneCount.toLocaleString(),
-          clusters: ds.metadata.clusterCount.toLocaleString(),
+          clusters: ds.metadata.cellTypeCount.toLocaleString(),
         });
       })
       .catch(() => {
