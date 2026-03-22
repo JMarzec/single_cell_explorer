@@ -70,11 +70,19 @@ export function normalizeDataset(data: unknown): SingleCellDataset {
   };
 }
 
-export async function fetchRemoteDataset(): Promise<SingleCellDataset> {
-  const response = await fetch(REMOTE_DATASET_URL);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch dataset: ${response.status}`);
+let cachedPromise: Promise<SingleCellDataset> | null = null;
+
+export function fetchRemoteDataset(): Promise<SingleCellDataset> {
+  if (!cachedPromise) {
+    cachedPromise = (async () => {
+      const response = await fetch(REMOTE_DATASET_URL);
+      if (!response.ok) {
+        cachedPromise = null;
+        throw new Error(`Failed to fetch dataset: ${response.status}`);
+      }
+      const data = await response.json();
+      return normalizeDataset(data);
+    })();
   }
-  const data = await response.json();
-  return normalizeDataset(data);
+  return cachedPromise;
 }
