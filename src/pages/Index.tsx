@@ -323,13 +323,18 @@ const Index = () => {
     );
   }
 
-  {/* Show error banner if remote dataset failed to load */}
-  if (remoteError) {
-    console.warn("Displaying error banner — remote dataset failed:", remoteError);
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {remoteError && (
+        <div className="bg-destructive/10 border-b border-destructive/30 px-4 py-3 text-center">
+          <p className="text-sm text-destructive font-medium">
+            ⚠ Failed to load remote dataset: {remoteError}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Showing demo data instead. The remote file may be too large for your browser's memory.
+          </p>
+        </div>
+      )}
       <Header metadata={dataset.metadata} onStartTour={() => setTourOpen(true)} />
       <ProductTour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 
