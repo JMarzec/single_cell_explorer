@@ -107,6 +107,7 @@ const defaultCellFilter: CellFilterType = {
 const Index = () => {
   const [dataset, setDataset] = useState<SingleCellDataset>(defaultDataset);
   const [isLoadingRemote, setIsLoadingRemote] = useState(true);
+  const [remoteError, setRemoteError] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const originalDatasetRef = useRef<SingleCellDataset>(defaultDataset);
 
@@ -114,12 +115,14 @@ const Index = () => {
   useEffect(() => {
     fetchRemoteDataset()
       .then((remoteDataset) => {
-        console.log("Remote dataset loaded:", remoteDataset.metadata.name, remoteDataset.cells.length, "cells");
+        console.log("Remote dataset loaded:", remoteDataset.metadata.name, remoteDataset.cells.length, "cells,", remoteDataset.genes.length, "genes");
         setDataset(remoteDataset);
         originalDatasetRef.current = remoteDataset;
       })
       .catch((err) => {
-        console.warn("Failed to load remote dataset, using demo data:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Failed to load remote dataset:", msg);
+        setRemoteError(msg);
       })
       .finally(() => setIsLoadingRemote(false));
   }, []);
@@ -322,6 +325,16 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {remoteError && (
+        <div className="bg-destructive/10 border-b border-destructive/30 px-4 py-3 text-center">
+          <p className="text-sm text-destructive font-medium">
+            ⚠ Failed to load remote dataset: {remoteError}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Showing demo data instead. The remote file may be too large for your browser's memory.
+          </p>
+        </div>
+      )}
       <Header metadata={dataset.metadata} onStartTour={() => setTourOpen(true)} />
       <ProductTour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 
