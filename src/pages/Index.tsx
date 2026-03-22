@@ -107,13 +107,14 @@ const defaultCellFilter: CellFilterType = {
 const Index = () => {
   const [dataset, setDataset] = useState<SingleCellDataset>(defaultDataset);
   const [isLoadingRemote, setIsLoadingRemote] = useState(true);
+  const [loadProgress, setLoadProgress] = useState<LoadProgress>({ phase: "downloading", percent: 0, message: "Initialising…" });
   const [remoteError, setRemoteError] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const originalDatasetRef = useRef<SingleCellDataset>(defaultDataset);
 
-  // Fetch remote dataset on mount
+  // Fetch remote dataset on mount with progress tracking
   useEffect(() => {
-    fetchRemoteDataset()
+    fetchRemoteDataset((p) => setLoadProgress(p))
       .then((remoteDataset) => {
         console.log("Remote dataset loaded:", remoteDataset.metadata.name, remoteDataset.cells.length, "cells,", remoteDataset.genes.length, "genes");
         setDataset(remoteDataset);
