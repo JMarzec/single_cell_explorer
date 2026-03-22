@@ -33,6 +33,7 @@ export interface DatasetMetadata {
   cellCount: number;
   geneCount: number;
   clusterCount: number;
+  cellTypeCount: number;
   organism?: string;
   tissue?: string;
   source?: string;

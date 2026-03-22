@@ -89,9 +89,9 @@ export function Header({ metadata, onStartTour }: HeaderProps) {
               <div className="h-8 w-px bg-border" />
               <div className="text-center">
                 <div className="text-lg font-semibold text-foreground">
-                  {metadata.clusterCount}
+                  {metadata.cellTypeCount}
                 </div>
-                <div className="text-xs text-muted-foreground">Clusters</div>
+                <div className="text-xs text-muted-foreground">Cell Types</div>
               </div>
             </div>
 
