@@ -192,7 +192,7 @@ export function DifferentialExpressionTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1">
         <table className="w-full">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
