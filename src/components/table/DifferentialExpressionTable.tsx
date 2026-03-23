@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,6 +8,7 @@ import {
   createColumnHelper,
   SortingState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { DifferentialExpression, ClusterInfo } from "@/types/singleCell";
 import { Input } from "@/components/ui/input";
 import { ArrowUpDown, Search } from "lucide-react";
@@ -18,6 +19,7 @@ interface DifferentialExpressionTableProps {
   onGeneClick?: (gene: string) => void;
 }
 
+const ROW_HEIGHT = 36;
 const columnHelper = createColumnHelper<DifferentialExpression>();
 
 export function DifferentialExpressionTable({
@@ -29,6 +31,7 @@ export function DifferentialExpressionTable({
     { id: "logFC", desc: true },
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const clusterNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -165,6 +168,15 @@ export function DifferentialExpressionTable({
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  const { rows } = table.getRowModel();
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
+  });
+
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden max-h-[600px] flex flex-col">
       <div className="p-4 border-b border-border shrink-0">
@@ -184,7 +196,7 @@ export function DifferentialExpressionTable({
         </div>
       </div>
 
-      <div className="overflow-auto flex-1">
+      <div ref={scrollContainerRef} className="overflow-auto flex-1">
         <table className="w-full">
           <thead className="sticky top-0 z-10 bg-muted">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -205,26 +217,59 @@ export function DifferentialExpressionTable({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-border">
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="hover:bg-secondary/50 transition-colors"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="px-4 py-2 text-sm text-foreground"
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+          <tbody>
+            {virtualizer.getVirtualItems().length > 0 && (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  style={{ height: virtualizer.getVirtualItems()[0].start, padding: 0 }}
+                />
               </tr>
-            ))}
+            )}
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              return (
+                <tr
+                  key={row.id}
+                  className="hover:bg-secondary/50 transition-colors border-b border-border"
+                  style={{ height: ROW_HEIGHT }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="px-4 py-2 text-sm text-foreground"
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+            {virtualizer.getVirtualItems().length > 0 && (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  style={{
+                    height:
+                      virtualizer.getTotalSize() -
+                      (virtualizer.getVirtualItems().at(-1)?.end ?? 0),
+                    padding: 0,
+                  }}
+                />
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
+      <div className="p-3 border-t border-border shrink-0">
+        <span className="text-xs text-muted-foreground">
+          {table.getFilteredRowModel().rows.length.toLocaleString()} entries
+        </span>
+      </div>
+    </div>
+  );
+}
       <div className="p-3 border-t border-border shrink-0">
         <span className="text-xs text-muted-foreground">
           {table.getFilteredRowModel().rows.length.toLocaleString()} entries
