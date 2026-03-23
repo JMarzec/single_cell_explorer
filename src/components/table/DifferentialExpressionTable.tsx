@@ -174,7 +174,7 @@ export function DifferentialExpressionTable({
   });
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
+    <div className="bg-card border border-border rounded-lg overflow-hidden max-h-[600px] flex flex-col">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between gap-4">
           <h3 className="text-sm font-semibold text-foreground">
@@ -192,7 +192,7 @@ export function DifferentialExpressionTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1">
         <table className="w-full">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
